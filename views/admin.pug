@@ -2,6 +2,19 @@ extends layout
 
 block content
   h1 Admin
+
+  - var selectedImages = images.filter(img => img.selected)
+  if selectedImages.length > 0
+    .selected-photos-section
+      .selected-photos-container
+        each image in selectedImages
+          .selected-photo-item(data-selected='true')
+            a(href=`/images/${image.filename}`)
+              img(src=`/images/${image.filename}` alt=image.filename)
+            label.checkbox-label
+              input(type='checkbox' data-filename=image.filename checked=image.selected)
+              span Select
+
   .gallery
     each image in images
       .gallery-item(data-selected=image.selected ? 'true' : 'false')
@@ -19,7 +32,7 @@ block content
         checkbox.addEventListener('change', async (e) => {
           const filename = e.target.getAttribute('data-filename');
           const selected = e.target.checked;
-          const galleryItem = e.target.closest('.gallery-item');
+          const photoItem = e.target.closest('.gallery-item') || e.target.closest('.selected-photo-item');
 
           try {
             const response = await fetch(`/api/photos/${filename}`, {
@@ -31,7 +44,18 @@ block content
             });
 
             if (response.ok) {
-              galleryItem.setAttribute('data-selected', selected ? 'true' : 'false');
+              const allItemsForPhoto = document.querySelectorAll(`[data-filename="${filename}"]`);
+              allItemsForPhoto.forEach(item => {
+                const itemContainer = item.closest('.gallery-item') || item.closest('.selected-photo-item');
+                if (itemContainer) {
+                  itemContainer.setAttribute('data-selected', selected ? 'true' : 'false');
+                }
+                item.checked = selected;
+              });
+
+              if (!selected && photoItem.classList.contains('selected-photo-item')) {
+                photoItem.remove();
+              }
             } else {
               e.target.checked = !selected;
               alert('Failed to update selection');

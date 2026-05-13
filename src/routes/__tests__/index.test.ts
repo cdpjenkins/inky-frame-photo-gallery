@@ -110,6 +110,43 @@ describe('GET /admin', () => {
     expect(response.text).toContain('data-selected="false"');
   });
 
+  it('should display selected photos section at top when photos are selected', async () => {
+    await request(testApp).patch('/api/photos/test1.jpg').send({ selected: true });
+    await request(testApp).patch('/api/photos/test2.jpg').send({ selected: true });
+
+    const response = await request(testApp).get('/admin');
+
+    expect(response.text).toContain('selected-photos-section');
+    expect(response.text).toContain('selected-photos-container');
+  });
+
+  it('should show only selected photos in the selected photos section', async () => {
+    await request(testApp).patch('/api/photos/test1.jpg').send({ selected: true });
+    await request(testApp).patch('/api/photos/test3.jpg').send({ selected: true });
+
+    const response = await request(testApp).get('/admin');
+
+    const selectedSectionStart = response.text.indexOf('selected-photos-section');
+    const selectedSectionEnd = response.text.indexOf('class="gallery"');
+    const selectedSection = response.text.substring(selectedSectionStart, selectedSectionEnd);
+
+    expect(selectedSection).toContain('test1.jpg');
+    expect(selectedSection).toContain('test3.jpg');
+    expect(selectedSection).not.toContain('test2.jpg');
+  });
+
+  it('should display selected photos in both selected section and main gallery', async () => {
+    await request(testApp).patch('/api/photos/test1.jpg').send({ selected: true });
+
+    const response = await request(testApp).get('/admin');
+
+    const firstOccurrence = response.text.indexOf('test1.jpg');
+    const secondOccurrence = response.text.indexOf('test1.jpg', firstOccurrence + 1);
+
+    expect(firstOccurrence).toBeGreaterThan(-1);
+    expect(secondOccurrence).toBeGreaterThan(-1);
+  });
+
   it('should return 404 without leaking internal info when directory does not exist', async () => {
     const nonExistentDir = path.join(__dirname, '../../../non-existent-directory');
     const appWithBadDir = createApp({ imageDir: nonExistentDir });
