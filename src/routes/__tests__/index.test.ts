@@ -24,12 +24,20 @@ afterEach(() => {
 });
 
 describe('GET /', () => {
-  it('should render the index page with title Express', async () => {
+  it('should render the index page with title Photo Gallery', async () => {
     const response = await request(app).get('/');
 
     expect(response.status).toBe(200);
-    expect(response.text).toContain('Express');
-    expect(response.text).toContain('Welcome to Express');
+    expect(response.text).toContain('Photo Gallery');
+    expect(response.text).not.toContain('Express');
+  });
+
+  it('should contain links to /list and /admin', async () => {
+    const response = await request(app).get('/');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('href="/list"');
+    expect(response.text).toContain('href="/admin"');
   });
 });
 

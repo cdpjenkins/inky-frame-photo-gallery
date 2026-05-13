@@ -6,7 +6,7 @@ import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
+  res.render('index', { title: 'Photo Gallery' });
 });
 
 router.get('/list', async function(req, res, next) {
