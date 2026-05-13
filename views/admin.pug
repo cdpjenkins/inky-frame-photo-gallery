@@ -4,16 +4,15 @@ block content
   h1 Admin
 
   - var selectedImages = images.filter(img => img.selected)
-  if selectedImages.length > 0
-    .selected-photos-section
-      .selected-photos-container
-        each image in selectedImages
-          .selected-photo-item(data-selected='true')
-            a(href=`/images/${image.filename}`)
-              img(src=`/images/${image.filename}` alt=image.filename)
-            label.checkbox-label
-              input(type='checkbox' data-filename=image.filename checked=image.selected)
-              span Select
+  .selected-photos-section(style=selectedImages.length === 0 ? 'display: none;' : '')
+    .selected-photos-container
+      each image in selectedImages
+        .selected-photo-item(data-selected='true')
+          a(href=`/images/${image.filename}`)
+            img(src=`/images/${image.filename}` alt=image.filename)
+          label.checkbox-label
+            input(type='checkbox' data-filename=image.filename checked=image.selected)
+            span Select
 
   .gallery
     each image in images
@@ -26,44 +25,78 @@ block content
 
   script.
     document.addEventListener('DOMContentLoaded', () => {
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      const selectedPhotosSection = document.querySelector('.selected-photos-section');
+      const selectedPhotosContainer = document.querySelector('.selected-photos-container');
 
-      checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', async (e) => {
-          const filename = e.target.getAttribute('data-filename');
-          const selected = e.target.checked;
-          const photoItem = e.target.closest('.gallery-item') || e.target.closest('.selected-photo-item');
+      function createSelectedPhotoItem(filename) {
+        const item = document.createElement('div');
+        item.className = 'selected-photo-item';
+        item.setAttribute('data-selected', 'true');
 
-          try {
-            const response = await fetch(`/api/photos/${filename}`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ selected }),
+        item.innerHTML = `
+          <a href="/images/${filename}">
+            <img src="/images/${filename}" alt="${filename}">
+          </a>
+          <label class="checkbox-label">
+            <input type="checkbox" data-filename="${filename}" checked>
+            <span>Select</span>
+          </label>
+        `;
+
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', handleCheckboxChange);
+
+        return item;
+      }
+
+      function handleCheckboxChange(e) {
+        const filename = e.target.getAttribute('data-filename');
+        const selected = e.target.checked;
+
+        fetch(`/api/photos/${filename}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ selected }),
+        })
+        .then(response => {
+          if (response.ok) {
+            const allItemsForPhoto = document.querySelectorAll(`[data-filename="${filename}"]`);
+            allItemsForPhoto.forEach(item => {
+              const itemContainer = item.closest('.gallery-item') || item.closest('.selected-photo-item');
+              if (itemContainer) {
+                itemContainer.setAttribute('data-selected', selected ? 'true' : 'false');
+              }
+              item.checked = selected;
             });
 
-            if (response.ok) {
-              const allItemsForPhoto = document.querySelectorAll(`[data-filename="${filename}"]`);
-              allItemsForPhoto.forEach(item => {
-                const itemContainer = item.closest('.gallery-item') || item.closest('.selected-photo-item');
-                if (itemContainer) {
-                  itemContainer.setAttribute('data-selected', selected ? 'true' : 'false');
+            if (selected && !document.querySelector(`.selected-photo-item [data-filename="${filename}"]`)) {
+              const newItem = createSelectedPhotoItem(filename);
+              selectedPhotosContainer.appendChild(newItem);
+              selectedPhotosSection.style.display = '';
+            } else if (!selected) {
+              const selectedItem = document.querySelector(`.selected-photo-item [data-filename="${filename}"]`);
+              if (selectedItem) {
+                selectedItem.closest('.selected-photo-item').remove();
+                if (selectedPhotosContainer.children.length === 0) {
+                  selectedPhotosSection.style.display = 'none';
                 }
-                item.checked = selected;
-              });
-
-              if (!selected && photoItem.classList.contains('selected-photo-item')) {
-                photoItem.remove();
               }
-            } else {
-              e.target.checked = !selected;
-              alert('Failed to update selection');
             }
-          } catch (error) {
+          } else {
             e.target.checked = !selected;
             alert('Failed to update selection');
           }
+        })
+        .catch(error => {
+          e.target.checked = !selected;
+          alert('Failed to update selection');
         });
+      }
+
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', handleCheckboxChange);
       });
     });
