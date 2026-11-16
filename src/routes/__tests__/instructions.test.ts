@@ -11,14 +11,31 @@
 
 import request from 'supertest';
 import path from 'path';
+import fs from 'fs';
 import { createApp } from '../../app';
 
 const testImageDir = path.join(__dirname, '../../../test-fixtures/images');
+const testInstructionsPath = path.join(__dirname, '../../../test-fixtures/test-instructions.json');
 
 let testApp: any;
 
+function removeTestInstructions() {
+  if (fs.existsSync(testInstructionsPath)) {
+    fs.unlinkSync(testInstructionsPath);
+  }
+}
+
+function addInstruction(text: string) {
+  return request(testApp).post('/admin/instructions').type('form').send({ text });
+}
+
 beforeEach(() => {
-  testApp = createApp({ imageDir: testImageDir });
+  removeTestInstructions();
+  testApp = createApp({ imageDir: testImageDir, instructionsPath: testInstructionsPath });
+});
+
+afterEach(() => {
+  removeTestInstructions();
 });
 
 describe('Instructions', () => {
@@ -32,7 +49,14 @@ describe('Instructions', () => {
   });
 
   // Rule 1 + Rule 4: first instruction gets seq 1, line format "<seq> <text>"
-  it.todo('admin adds "display /images/cat.jpg" with no instructions -> frame asks after 0 and receives "1 display /images/cat.jpg"');
+  it('admin adds "display /images/cat.jpg" with no instructions -> frame asks after 0 and receives "1 display /images/cat.jpg"', async () => {
+    await addInstruction('display /images/cat.jpg');
+
+    const response = await request(testApp).get('/instructions?after=0');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toBe('1 display /images/cat.jpg');
+  });
 
   // Rule 1 + Rule 4: sequence numbers increase by 1; one line per instruction, joined by "\n"
   it.todo('admin adds "display /images/cat.jpg" then "sleep" -> frame asks after 0 and receives "1 display /images/cat.jpg\\n2 sleep"');

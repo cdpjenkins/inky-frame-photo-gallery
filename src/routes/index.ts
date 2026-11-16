@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCommand';
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
+import { InstructionRepository } from '../repositories/InstructionRepository';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -90,8 +91,18 @@ router.patch('/api/photos/:filename', function(req, res, next) {
 });
 
 router.get('/instructions', function(req, res) {
+  const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
+  const instructions = instructionRepository.getAll();
+
   res.type('text/plain');
-  res.send('');
+  res.send(instructions.length > 0 ? `1 ${instructions[0]}` : '');
+});
+
+router.post('/admin/instructions', function(req, res) {
+  const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
+
+  instructionRepository.add(req.body.text);
+  res.redirect('/admin');
 });
 
 export default router;

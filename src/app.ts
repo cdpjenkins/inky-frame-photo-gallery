@@ -7,10 +7,12 @@ import logger from 'morgan';
 import indexRouter from './routes/index';
 import { PhotoMetadataRepository } from './repositories/PhotoMetadataRepository';
 import { TogglePhotoSelectionCommand } from './commands/TogglePhotoSelectionCommand';
+import { InstructionRepository } from './repositories/InstructionRepository';
 
 interface AppConfig {
   imageDir: string;
   metadataPath?: string;
+  instructionsPath?: string;
 }
 
 export function createApp(config: AppConfig) {
@@ -24,6 +26,7 @@ export function createApp(config: AppConfig) {
 
   app.set('photoMetadataRepository', photoMetadataRepository);
   app.set('togglePhotoSelectionCommand', togglePhotoSelectionCommand);
+  app.set('instructionRepository', new InstructionRepository());
 
   app.set('views', path.join(__dirname, '../views'));
   app.set('view engine', 'pug');
