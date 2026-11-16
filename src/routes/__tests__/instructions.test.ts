@@ -107,6 +107,7 @@ describe('Instructions', () => {
   });
   it.todo('frame asks after -1 -> 400 Bad Request');
   it.todo('frame asks after 12.5 -> 400 Bad Request (sequence numbers are integers)');
+  it.todo('frame asks with an empty N ("after=") -> 400 Bad Request');
 
   // Rule 7: admin page lists instructions
   it.todo('instructions 1-3 exist -> admin page lists 1, 2, 3 in that order, each with its sequence number and text');
@@ -140,16 +141,16 @@ describe('Instructions', () => {
     // Relies on: 409 for N > latest (test 5); latest is 0 when there are no instructions (derived from Rule 5)
     it.todo('no instructions exist, frame asks after 1 -> 409 Conflict');
 
-    // Relies on: trimming (test 11) + empty rejection (test 12)
+    // Relies on: trimming (test 12) + empty rejection (test 13)
     it.todo('admin adds "   " -> rejected as empty: admin page shows an error message, instruction not added');
 
-    // Relies on: trimming (test 11) happening before the newline check (test 14)
+    // Relies on: trimming (test 12) happening before the newline check (test 15)
     it.todo('admin adds "sleep\\n" -> trimmed to "sleep" and accepted (frame asks after 0 and receives "1 sleep")');
 
-    // Relies on: length rejection (test 13); boundary
+    // Relies on: length rejection (test 14); boundary
     it.todo('admin adds exactly 100 characters -> accepted');
 
-    // Relies on: rejection not adding (tests 12-15) + sequence numbering (test 3)
+    // Relies on: rejection not adding (tests 13-16) + sequence numbering (test 3)
     it.todo('latest seq is 3, admin submits "" then "sleep" -> "sleep" gets seq 4 (rejection uses up no sequence number)');
   });
 });

@@ -36,7 +36,7 @@ A brand-new frame sends N=0 to receive all instructions.
 Sequence number, a single space, then the instruction text.
 
 ### Rule 5: A missing or invalid N, or an N ahead of the backend, is an error
-Missing or invalid N (non-numeric, negative, non-integer) -> 400 Bad Request. Sequence numbers are integers.
+Missing, empty or invalid N (non-numeric, negative, non-integer) -> 400 Bad Request. Sequence numbers are integers.
 N greater than the latest sequence number -> 409 Conflict.
 
 ### Rule 6: Instructions and the sequence counter survive a backend restart
@@ -76,6 +76,7 @@ Shown in ascending order with their sequence numbers. Instructions are added via
 - N = "abc" -> 400
 - N = -1 -> 400
 - N = 12.5 -> 400
+- N empty ("after=") -> 400
 - Latest seq is 5; frame asks after 9 -> 409 Conflict
 
 ### For Rule 6: Persistence
