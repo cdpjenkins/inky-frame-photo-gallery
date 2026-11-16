@@ -89,4 +89,9 @@ router.patch('/api/photos/:filename', function(req, res, next) {
   }
 });
 
+router.get('/instructions', function(req, res) {
+  res.type('text/plain');
+  res.send('');
+});
+
 export default router;

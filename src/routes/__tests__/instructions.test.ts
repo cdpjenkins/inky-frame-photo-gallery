@@ -9,9 +9,27 @@
 // error message, and (b) the instruction is not added (the frame does not receive it and the admin page does
 // not list it).
 
+import request from 'supertest';
+import path from 'path';
+import { createApp } from '../../app';
+
+const testImageDir = path.join(__dirname, '../../../test-fixtures/images');
+
+let testApp: any;
+
+beforeEach(() => {
+  testApp = createApp({ imageDir: testImageDir });
+});
+
 describe('Instructions', () => {
   // Rule 3 + Rule 4: empty case
-  it.todo('frame asks after 0 with no instructions -> 200, text/plain, empty body');
+  it('frame asks after 0 with no instructions -> 200, text/plain, empty body', async () => {
+    const response = await request(testApp).get('/instructions?after=0');
+
+    expect(response.status).toBe(200);
+    expect(response.type).toBe('text/plain');
+    expect(response.text).toBe('');
+  });
 
   // Rule 1 + Rule 4: first instruction gets seq 1, line format "<seq> <text>"
   it.todo('admin adds "display /images/cat.jpg" with no instructions -> frame asks after 0 and receives "1 display /images/cat.jpg"');
