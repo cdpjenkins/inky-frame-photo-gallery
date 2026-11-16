@@ -92,7 +92,8 @@ router.patch('/api/photos/:filename', function(req, res, next) {
 
 router.get('/instructions', function(req, res) {
   const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
-  const instructions = instructionRepository.getAll();
+  const after = Number(req.query.after);
+  const instructions = instructionRepository.getAfter(after);
 
   res.type('text/plain');
   res.send(instructions.map(({ sequenceNumber, text }) => `${sequenceNumber} ${text}`).join('\n'));

@@ -10,7 +10,7 @@ export class InstructionRepository {
     this.instructions.push({ sequenceNumber: this.instructions.length + 1, text });
   }
 
-  getAll(): Instruction[] {
-    return this.instructions;
+  getAfter(sequenceNumber: number): Instruction[] {
+    return this.instructions.filter(instruction => instruction.sequenceNumber > sequenceNumber);
   }
 }

@@ -29,6 +29,12 @@ function addInstruction(text: string) {
   return request(testApp).post('/admin/instructions').type('form').send({ text });
 }
 
+async function addInstructions(count: number) {
+  for (let i = 1; i <= count; i++) {
+    await addInstruction(`instruction ${i}`);
+  }
+}
+
 beforeEach(() => {
   removeTestInstructions();
   testApp = createApp({ imageDir: testImageDir, instructionsPath: testInstructionsPath });
@@ -70,7 +76,14 @@ describe('Instructions', () => {
   });
 
   // Rule 3: only instructions after N
-  it.todo('instructions 1-5 exist, frame asks after 3 -> receives exactly instructions 4 then 5');
+  it('instructions 1-5 exist, frame asks after 3 -> receives exactly instructions 4 then 5', async () => {
+    await addInstructions(5);
+
+    const response = await request(testApp).get('/instructions?after=3');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toBe('4 instruction 4\n5 instruction 5');
+  });
 
   // Rule 5: N ahead of the backend
   it.todo('latest seq is 5, frame asks after 9 -> 409 Conflict');
