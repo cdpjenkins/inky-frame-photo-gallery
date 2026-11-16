@@ -7,7 +7,11 @@ export class InstructionRepository {
   private readonly instructions: Instruction[] = [];
 
   add(text: string): void {
-    this.instructions.push({ sequenceNumber: this.instructions.length + 1, text });
+    this.instructions.push({ sequenceNumber: this.latestSequenceNumber() + 1, text });
+  }
+
+  latestSequenceNumber(): number {
+    return this.instructions.length;
   }
 
   getAfter(sequenceNumber: number): Instruction[] {

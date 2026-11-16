@@ -93,6 +93,10 @@ router.patch('/api/photos/:filename', function(req, res, next) {
 router.get('/instructions', function(req, res) {
   const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
   const after = Number(req.query.after);
+  if (after > instructionRepository.latestSequenceNumber()) {
+    res.sendStatus(409);
+    return;
+  }
   const instructions = instructionRepository.getAfter(after);
 
   res.type('text/plain');

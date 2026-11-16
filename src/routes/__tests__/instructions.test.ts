@@ -86,7 +86,13 @@ describe('Instructions', () => {
   });
 
   // Rule 5: N ahead of the backend
-  it.todo('latest seq is 5, frame asks after 9 -> 409 Conflict');
+  it('latest seq is 5, frame asks after 9 -> 409 Conflict', async () => {
+    await addInstructions(5);
+
+    const response = await request(testApp).get('/instructions?after=9');
+
+    expect(response.status).toBe(409);
+  });
 
   // Rule 5: missing / invalid N
   it.todo('frame asks with no N -> 400 Bad Request');
