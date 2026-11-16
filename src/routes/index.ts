@@ -90,9 +90,20 @@ router.patch('/api/photos/:filename', function(req, res, next) {
   }
 });
 
+function parseSequenceNumber(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return Number(value);
+}
+
 router.get('/instructions', function(req, res) {
   const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
-  const after = Number(req.query.after);
+  const after = parseSequenceNumber(req.query.after);
+  if (after === undefined) {
+    res.sendStatus(400);
+    return;
+  }
   if (after > instructionRepository.latestSequenceNumber()) {
     res.sendStatus(409);
     return;
