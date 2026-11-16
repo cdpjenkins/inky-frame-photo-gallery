@@ -23,8 +23,11 @@ Sequence numbers start at 1 and increase by 1 with each instruction added.
 
 ### Rule 2: Instructions are trimmed, then validated
 Leading/trailing whitespace is trimmed before validation. An instruction is rejected if, after trimming, it is empty,
-longer than 100 characters, or contains a newline. A rejected instruction shows an error message on the admin page,
-is not added, and does not use up a sequence number.
+longer than 100 characters, or contains a newline (`\n`) or carriage return (`\r`). A rejected instruction shows an
+error message on the admin page, is not added, and does not use up a sequence number.
+
+Because trimming happens first, a trailing newline is trimmed away and the instruction is accepted. This is accepted
+for now; changing it would be a new story.
 
 ### Rule 3: The frame receives all instructions with a sequence number greater than N, in ascending order
 A brand-new frame sends N=0 to receive all instructions.
@@ -33,7 +36,7 @@ A brand-new frame sends N=0 to receive all instructions.
 Sequence number, a single space, then the instruction text.
 
 ### Rule 5: A missing or invalid N, or an N ahead of the backend, is an error
-Missing or invalid N (non-numeric, negative) -> 400 Bad Request.
+Missing or invalid N (non-numeric, negative, non-integer) -> 400 Bad Request. Sequence numbers are integers.
 N greater than the latest sequence number -> 409 Conflict.
 
 ### Rule 6: Instructions and the sequence counter survive a backend restart
@@ -55,6 +58,8 @@ Shown in ascending order with their sequence numbers. Instructions are added via
 - 100 characters after trimming -> accepted
 - 101 characters after trimming -> rejected, error message shown
 - "display\ncat.jpg" -> rejected (contains newline), error message shown
+- "display\rcat.jpg" -> rejected (contains carriage return), error message shown
+- "sleep\n" -> trimmed to "sleep" and accepted
 - Latest seq is 3; admin submits "", then "sleep" -> "sleep" gets seq 4
 
 ### For Rule 3: The frame receives all instructions after N, ascending
@@ -70,6 +75,7 @@ Shown in ascending order with their sequence numbers. Instructions are added via
 - No N sent -> 400
 - N = "abc" -> 400
 - N = -1 -> 400
+- N = 12.5 -> 400
 - Latest seq is 5; frame asks after 9 -> 409 Conflict
 
 ### For Rule 6: Persistence
