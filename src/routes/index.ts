@@ -95,7 +95,7 @@ router.get('/instructions', function(req, res) {
   const instructions = instructionRepository.getAll();
 
   res.type('text/plain');
-  res.send(instructions.length > 0 ? `1 ${instructions[0]}` : '');
+  res.send(instructions.map(({ sequenceNumber, text }) => `${sequenceNumber} ${text}`).join('\n'));
 });
 
 router.post('/admin/instructions', function(req, res) {

@@ -1,11 +1,16 @@
+export type Instruction = {
+  sequenceNumber: number;
+  text: string;
+};
+
 export class InstructionRepository {
-  private readonly instructions: string[] = [];
+  private readonly instructions: Instruction[] = [];
 
   add(text: string): void {
-    this.instructions.push(text);
+    this.instructions.push({ sequenceNumber: this.instructions.length + 1, text });
   }
 
-  getAll(): string[] {
+  getAll(): Instruction[] {
     return this.instructions;
   }
 }

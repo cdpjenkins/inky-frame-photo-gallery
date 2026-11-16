@@ -59,7 +59,15 @@ describe('Instructions', () => {
   });
 
   // Rule 1 + Rule 4: sequence numbers increase by 1; one line per instruction, joined by "\n"
-  it.todo('admin adds "display /images/cat.jpg" then "sleep" -> frame asks after 0 and receives "1 display /images/cat.jpg\\n2 sleep"');
+  it('admin adds "display /images/cat.jpg" then "sleep" -> frame asks after 0 and receives "1 display /images/cat.jpg\\n2 sleep"', async () => {
+    await addInstruction('display /images/cat.jpg');
+    await addInstruction('sleep');
+
+    const response = await request(testApp).get('/instructions?after=0');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toBe('1 display /images/cat.jpg\n2 sleep');
+  });
 
   // Rule 3: only instructions after N
   it.todo('instructions 1-5 exist, frame asks after 3 -> receives exactly instructions 4 then 5');
