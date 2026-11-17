@@ -91,14 +91,10 @@ router.patch('/api/photos/:filename', function(req, res, next) {
 });
 
 function parseSequenceNumber(value: unknown): number | undefined {
-  if (typeof value === 'string' && !/^\d+$/.test(value)) {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
     return undefined;
   }
-  const sequenceNumber = Number(value);
-  if (!Number.isInteger(sequenceNumber) || sequenceNumber < 0) {
-    return undefined;
-  }
-  return sequenceNumber;
+  return Number(value);
 }
 
 router.get('/instructions', function(req, res) {

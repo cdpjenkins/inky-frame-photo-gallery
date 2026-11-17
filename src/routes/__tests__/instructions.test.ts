@@ -130,7 +130,11 @@ describe('Instructions', () => {
 
     expect(response.status).toBe(400);
   });
-  it.todo('frame asks with N given as an array ("after[]=3") -> 400 Bad Request (N must be a single string)');
+  it('frame asks with N given as an array ("after[]=3") -> 400 Bad Request (N must be a single string)', async () => {
+    const response = await request(testApp).get('/instructions?after[]=3');
+
+    expect(response.status).toBe(400);
+  });
 
   // Rule 7: admin page lists instructions
   it.todo('instructions 1-3 exist -> admin page lists 1, 2, 3 in that order, each with its sequence number and text');
