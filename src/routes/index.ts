@@ -133,6 +133,10 @@ router.post('/admin/instructions', function(req, res, next) {
     renderAdminPage(req, res, next, 'Instruction must be at most 100 characters');
     return;
   }
+  if (text.includes('\n')) {
+    renderAdminPage(req, res, next, 'Instruction must not contain line breaks');
+    return;
+  }
   instructionRepository.add(text);
   res.redirect('/admin');
 });
