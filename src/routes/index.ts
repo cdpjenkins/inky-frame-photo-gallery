@@ -118,7 +118,7 @@ router.get('/instructions', function(req, res) {
 router.post('/admin/instructions', function(req, res) {
   const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
 
-  instructionRepository.add(req.body.text);
+  instructionRepository.add(req.body.text.trim());
   res.redirect('/admin');
 });
 

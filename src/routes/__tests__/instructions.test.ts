@@ -159,7 +159,13 @@ describe('Instructions', () => {
   });
 
   // Rule 2: trimming
-  it.todo('admin adds "  sleep  " -> stored as "sleep" (frame asks after 0 and receives "1 sleep")');
+  it('admin adds "  sleep  " -> stored as "sleep" (frame asks after 0 and receives "1 sleep")', async () => {
+    await addInstruction('  sleep  ');
+
+    const response = await request(testApp).get('/instructions?after=0');
+
+    expect(response.text).toBe('1 sleep');
+  });
 
   // Rule 2: rejections (see rejection contract at top of file)
   it.todo('admin adds "" -> rejected as empty: admin page shows an error message, frame asks after 0 and receives an empty body');
