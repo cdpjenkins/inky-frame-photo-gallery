@@ -110,7 +110,11 @@ describe('Instructions', () => {
 
     expect(response.status).toBe(400);
   });
-  it.todo('frame asks after 12.5 -> 400 Bad Request (sequence numbers are integers)');
+  it('frame asks after 12.5 -> 400 Bad Request (sequence numbers are integers)', async () => {
+    const response = await request(testApp).get('/instructions?after=12.5');
+
+    expect(response.status).toBe(400);
+  });
   it.todo('frame asks with an empty N ("after=") -> 400 Bad Request');
 
   // Rule 7: admin page lists instructions
