@@ -130,7 +130,7 @@ describe('Instructions', () => {
 
     expect(response.status).toBe(400);
   });
-  it.todo('frame asks after "1e1" (exponent notation) -> 400 Bad Request');
+  it.todo('frame asks with N given as an array ("after[]=3") -> 400 Bad Request (N must be a single string)');
 
   // Rule 7: admin page lists instructions
   it.todo('instructions 1-3 exist -> admin page lists 1, 2, 3 in that order, each with its sequence number and text');
@@ -163,6 +163,12 @@ describe('Instructions', () => {
 
     // Relies on: 409 for N > latest (test 5); latest is 0 when there are no instructions (derived from Rule 5)
     it.todo('no instructions exist, frame asks after 1 -> 409 Conflict');
+
+    // Relies on: plain decimal digits check (test 12)
+    it.todo('frame asks after "1e1" (exponent notation) -> 400 Bad Request');
+
+    // Relies on: N must be a single string (test 13)
+    it.todo('frame asks with N given twice ("after=1&after=2") -> 400 Bad Request');
 
     // Relies on: trimming (test 15) + empty rejection (test 16)
     it.todo('admin adds "   " -> rejected as empty: admin page shows an error message, instruction not added');
