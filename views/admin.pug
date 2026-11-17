@@ -2,6 +2,10 @@ extends layout
 
 block content
   h1 Admin
+  h2 Instructions
+  ol.instructions
+    each instruction in instructions
+      li #{instruction.sequenceNumber} #{instruction.text}
 
   - var selectedImages = images.filter(img => img.selected)
   .selected-photos-section(style=selectedImages.length === 0 ? 'display: none;' : '')

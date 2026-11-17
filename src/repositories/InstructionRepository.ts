@@ -14,6 +14,10 @@ export class InstructionRepository {
     return this.instructions.length;
   }
 
+  getAll(): Instruction[] {
+    return this.instructions;
+  }
+
   getAfter(sequenceNumber: number): Instruction[] {
     return this.instructions.filter(instruction => instruction.sequenceNumber > sequenceNumber);
   }

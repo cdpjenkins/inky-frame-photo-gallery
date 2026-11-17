@@ -137,7 +137,16 @@ describe('Instructions', () => {
   });
 
   // Rule 7: admin page lists instructions
-  it.todo('instructions 1-3 exist -> admin page lists 1, 2, 3 in that order, each with its sequence number and text');
+  it('instructions 1-3 exist -> admin page lists 1, 2, 3 in that order, each with its sequence number and text', async () => {
+    await addInstructions(3);
+
+    const response = await request(testApp).get('/admin');
+
+    expect(response.status).toBe(200);
+    const positions = ['1 instruction 1', '2 instruction 2', '3 instruction 3'].map(line => response.text.indexOf(line));
+    expect(positions).not.toContain(-1);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  });
 
   // Rule 2: trimming
   it.todo('admin adds "  sleep  " -> stored as "sleep" (frame asks after 0 and receives "1 sleep")');

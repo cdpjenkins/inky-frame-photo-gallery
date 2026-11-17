@@ -41,7 +41,8 @@ router.get('/admin', async function(req, res, next) {
       filename: file,
       selected: photoMetadataRepository.getSelection(file),
     }));
-    res.render('admin', { title: 'Admin', images: imagesWithSelection });
+    const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
+    res.render('admin', { title: 'Admin', images: imagesWithSelection, instructions: instructionRepository.getAll() });
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       res.status(404).json({ error: 'Not found' });
