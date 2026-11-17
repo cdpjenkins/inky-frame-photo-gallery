@@ -27,7 +27,8 @@ export function createApp(config: AppConfig) {
 
   app.set('photoMetadataRepository', photoMetadataRepository);
   app.set('togglePhotoSelectionCommand', togglePhotoSelectionCommand);
-  const instructionRepository = new InstructionRepository();
+  const instructionsPath = config.instructionsPath || path.join(config.imageDir, 'instructions.json');
+  const instructionRepository = new InstructionRepository(instructionsPath);
   app.set('instructionRepository', instructionRepository);
   app.set('addInstructionCommand', new AddInstructionCommand(instructionRepository));
 

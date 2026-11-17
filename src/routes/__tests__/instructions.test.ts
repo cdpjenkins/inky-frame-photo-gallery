@@ -202,7 +202,18 @@ describe('Instructions', () => {
   });
 
   // Rule 6: persistence across restart
-  it.todo('instructions 1-5 exist, backend restarts (new app, same storage) -> frame asks after 0 and receives 1-5; next instruction added gets seq 6');
+  it('instructions 1-5 exist, backend restarts (new app, same storage) -> frame asks after 0 and receives 1-5; next instruction added gets seq 6', async () => {
+    await addInstructions(5);
+
+    testApp = createApp({ imageDir: testImageDir, instructionsPath: testInstructionsPath });
+
+    const afterRestart = await request(testApp).get('/instructions?after=0');
+    expect(afterRestart.text).toBe('1 instruction 1\n2 instruction 2\n3 instruction 3\n4 instruction 4\n5 instruction 5');
+
+    await addInstruction('sleep');
+    const newest = await request(testApp).get('/instructions?after=5');
+    expect(newest.text).toBe('6 sleep');
+  });
 
   describe('verification', () => {
     // Relies on: increasing sequence numbers (test 3)
