@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
 import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCommand';
@@ -31,7 +31,7 @@ router.get('/list', async function(req, res, next) {
   }
 });
 
-router.get('/admin', async function(req, res, next) {
+async function renderAdminPage(req: Request, res: Response, next: NextFunction, error?: string) {
   try {
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
@@ -42,7 +42,10 @@ router.get('/admin', async function(req, res, next) {
       selected: photoMetadataRepository.getSelection(file),
     }));
     const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
-    res.render('admin', { title: 'Admin', images: imagesWithSelection, instructions: instructionRepository.getAll() });
+    if (error) {
+      res.status(400);
+    }
+    res.render('admin', { title: 'Admin', images: imagesWithSelection, instructions: instructionRepository.getAll(), error });
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       res.status(404).json({ error: 'Not found' });
@@ -50,7 +53,10 @@ router.get('/admin', async function(req, res, next) {
     }
     next(error);
   }
-});
+}
+
+// Wrapped so Express sees a 3-argument handler; a 4-argument function is treated as error-handling middleware.
+router.get('/admin', (req, res, next) => renderAdminPage(req, res, next));
 
 router.get('/images/:filename', function(req, res, next) {
   const imageDir = req.app.get('imageDir');
@@ -115,10 +121,15 @@ router.get('/instructions', function(req, res) {
   res.send(instructions.map(({ sequenceNumber, text }) => `${sequenceNumber} ${text}`).join('\n'));
 });
 
-router.post('/admin/instructions', function(req, res) {
+router.post('/admin/instructions', function(req, res, next) {
   const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
+  const text = req.body.text.trim();
 
-  instructionRepository.add(req.body.text.trim());
+  if (text === '') {
+    renderAdminPage(req, res, next, 'Instruction must not be empty');
+    return;
+  }
+  instructionRepository.add(text);
   res.redirect('/admin');
 });
 

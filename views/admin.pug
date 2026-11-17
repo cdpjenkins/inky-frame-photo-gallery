@@ -6,6 +6,8 @@ block content
   ol.instructions
     each instruction in instructions
       li #{instruction.sequenceNumber} #{instruction.text}
+  if error
+    p.error(role='alert')= error
   form(method='post' action='/admin/instructions')
     input(type='text' name='text')
     button(type='submit') Add

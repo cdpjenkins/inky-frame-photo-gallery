@@ -5,9 +5,9 @@
 //
 // Rejection contract (Rule 2): the spec says a rejected instruction "shows an error message on the admin page,
 // is not added, and does not use up a sequence number". The spec does not define the error text or the HTTP
-// status of the form response, so rejection tests assert only that: (a) the resulting admin page contains an
-// error message, and (b) the instruction is not added (the frame does not receive it and the admin page does
-// not list it).
+// status of the form response, so rejection tests assert only that: (a) the resulting admin page contains a
+// non-empty element with role="alert" (agreed contract for "shows an error message"), and (b) the instruction
+// is not added (the frame does not receive it; the admin list reads from the same instruction list).
 
 import request from 'supertest';
 import path from 'path';
@@ -27,6 +27,10 @@ function removeTestInstructions() {
 
 function addInstruction(text: string) {
   return request(testApp).post('/admin/instructions').type('form').send({ text });
+}
+
+function errorMessage(html: string): string | undefined {
+  return html.match(/<[^>]*role="alert"[^>]*>([^<]*)</)?.[1].trim();
 }
 
 async function addInstructions(count: number) {
@@ -168,7 +172,13 @@ describe('Instructions', () => {
   });
 
   // Rule 2: rejections (see rejection contract at top of file)
-  it.todo('admin adds "" -> rejected as empty: admin page shows an error message, frame asks after 0 and receives an empty body');
+  it('admin adds "" -> rejected as empty: admin page shows an error message, frame asks after 0 and receives an empty body', async () => {
+    const addResponse = await addInstruction('');
+
+    expect(errorMessage(addResponse.text)).toBeTruthy();
+    const response = await request(testApp).get('/instructions?after=0');
+    expect(response.text).toBe('');
+  });
   it.todo('admin adds 101 characters (after trimming) -> rejected: admin page shows an error message, instruction not added');
   it.todo('admin adds "display\\ncat.jpg" -> rejected (contains newline): admin page shows an error message, instruction not added');
   it.todo('admin adds "display\\rcat.jpg" -> rejected (contains carriage return): admin page shows an error message, instruction not added');
