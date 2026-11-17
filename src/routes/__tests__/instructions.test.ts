@@ -105,7 +105,11 @@ describe('Instructions', () => {
 
     expect(response.status).toBe(400);
   });
-  it.todo('frame asks after -1 -> 400 Bad Request');
+  it('frame asks after -1 -> 400 Bad Request', async () => {
+    const response = await request(testApp).get('/instructions?after=-1');
+
+    expect(response.status).toBe(400);
+  });
   it.todo('frame asks after 12.5 -> 400 Bad Request (sequence numbers are integers)');
   it.todo('frame asks with an empty N ("after=") -> 400 Bad Request');
 

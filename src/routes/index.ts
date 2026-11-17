@@ -92,7 +92,7 @@ router.patch('/api/photos/:filename', function(req, res, next) {
 
 function parseSequenceNumber(value: unknown): number | undefined {
   const sequenceNumber = Number(value);
-  if (Number.isNaN(sequenceNumber)) {
+  if (Number.isNaN(sequenceNumber) || sequenceNumber < 0) {
     return undefined;
   }
   return sequenceNumber;
