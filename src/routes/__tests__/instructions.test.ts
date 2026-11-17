@@ -201,9 +201,6 @@ describe('Instructions', () => {
     expect(response.text).toBe('');
   });
 
-  // Rule 2: length is checked AFTER trimming
-  it.todo('admin adds 2 spaces + 100 characters + 2 spaces -> accepted and stored as the 100 characters');
-
   // Rule 6: persistence across restart
   it.todo('instructions 1-5 exist, backend restarts (new app, same storage) -> frame asks after 0 and receives 1-5; next instruction added gets seq 6');
 
@@ -235,6 +232,9 @@ describe('Instructions', () => {
 
     // Relies on: length rejection (test 18); boundary
     it.todo('admin adds exactly 100 characters -> accepted');
+
+    // Relies on: trimming (test 16) happening before the length check (test 18)
+    it.todo('admin adds 2 spaces + 100 characters + 2 spaces -> accepted and stored as the 100 characters');
 
     // Relies on: rejection not adding (tests 17-20) + sequence numbering (test 3)
     it.todo('latest seq is 3, admin submits "" then "sleep" -> "sleep" gets seq 4 (rejection uses up no sequence number)');
