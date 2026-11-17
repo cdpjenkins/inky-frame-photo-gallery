@@ -90,6 +90,7 @@ Shown in ascending order with their sequence numbers. Instructions are added via
 
 ### For Rule 7: Admin page lists instructions
 - Instructions 1-3 exist -> admin page shows 1, 2, 3 in that order with their sequence numbers
+- Admin page has a form for adding an instruction
 
 ## Questions (red)
 

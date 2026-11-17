@@ -147,6 +147,7 @@ describe('Instructions', () => {
     expect(positions).not.toContain(-1);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
+  it.todo('admin page has a form that posts a "text" field to /admin/instructions');
 
   // Rule 2: trimming
   it.todo('admin adds "  sleep  " -> stored as "sleep" (frame asks after 0 and receives "1 sleep")');
@@ -183,16 +184,16 @@ describe('Instructions', () => {
     // Relies on: N must be a single string (test 13)
     it.todo('frame asks with N given twice ("after=1&after=2") -> 400 Bad Request');
 
-    // Relies on: trimming (test 15) + empty rejection (test 16)
+    // Relies on: trimming (test 16) + empty rejection (test 17)
     it.todo('admin adds "   " -> rejected as empty: admin page shows an error message, instruction not added');
 
-    // Relies on: trimming (test 15) happening before the newline check (test 18)
+    // Relies on: trimming (test 16) happening before the newline check (test 19)
     it.todo('admin adds "sleep\\n" -> trimmed to "sleep" and accepted (frame asks after 0 and receives "1 sleep")');
 
-    // Relies on: length rejection (test 17); boundary
+    // Relies on: length rejection (test 18); boundary
     it.todo('admin adds exactly 100 characters -> accepted');
 
-    // Relies on: rejection not adding (tests 16-19) + sequence numbering (test 3)
+    // Relies on: rejection not adding (tests 17-20) + sequence numbering (test 3)
     it.todo('latest seq is 3, admin submits "" then "sleep" -> "sleep" gets seq 4 (rejection uses up no sequence number)');
   });
 });
