@@ -129,6 +129,10 @@ router.post('/admin/instructions', function(req, res, next) {
     renderAdminPage(req, res, next, 'Instruction must not be empty');
     return;
   }
+  if (text.length > 100) {
+    renderAdminPage(req, res, next, 'Instruction must be at most 100 characters');
+    return;
+  }
   instructionRepository.add(text);
   res.redirect('/admin');
 });

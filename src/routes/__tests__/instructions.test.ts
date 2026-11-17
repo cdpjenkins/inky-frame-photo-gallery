@@ -179,7 +179,13 @@ describe('Instructions', () => {
     const response = await request(testApp).get('/instructions?after=0');
     expect(response.text).toBe('');
   });
-  it.todo('admin adds 101 characters (after trimming) -> rejected: admin page shows an error message, instruction not added');
+  it('admin adds 101 characters (after trimming) -> rejected: admin page shows an error message, instruction not added', async () => {
+    const addResponse = await addInstruction('a'.repeat(101));
+
+    expect(errorMessage(addResponse.text)).toBeTruthy();
+    const response = await request(testApp).get('/instructions?after=0');
+    expect(response.text).toBe('');
+  });
   it.todo('admin adds "display\\ncat.jpg" -> rejected (contains newline): admin page shows an error message, instruction not added');
   it.todo('admin adds "display\\rcat.jpg" -> rejected (contains carriage return): admin page shows an error message, instruction not added');
 
