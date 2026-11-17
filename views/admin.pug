@@ -6,6 +6,9 @@ block content
   ol.instructions
     each instruction in instructions
       li #{instruction.sequenceNumber} #{instruction.text}
+  form(method='post' action='/admin/instructions')
+    input(type='text' name='text')
+    button(type='submit') Add
 
   - var selectedImages = images.filter(img => img.selected)
   .selected-photos-section(style=selectedImages.length === 0 ? 'display: none;' : '')

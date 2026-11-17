@@ -147,7 +147,16 @@ describe('Instructions', () => {
     expect(positions).not.toContain(-1);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
-  it.todo('admin page has a form that posts a "text" field to /admin/instructions');
+  it('admin page has a form that posts a "text" field to /admin/instructions', async () => {
+    const response = await request(testApp).get('/admin');
+
+    expect(response.status).toBe(200);
+    const form = response.text.match(/<form([^>]*action="\/admin\/instructions"[^>]*)>([\s\S]*?)<\/form>/);
+    expect(form).not.toBeNull();
+    const [, formAttributes, formContent] = form!;
+    expect(formAttributes).toMatch(/method="post"/i);
+    expect(formContent).toMatch(/name="text"/);
+  });
 
   // Rule 2: trimming
   it.todo('admin adds "  sleep  " -> stored as "sleep" (frame asks after 0 and receives "1 sleep")');
