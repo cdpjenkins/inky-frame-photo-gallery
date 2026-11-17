@@ -193,7 +193,13 @@ describe('Instructions', () => {
     const response = await request(testApp).get('/instructions?after=0');
     expect(response.text).toBe('');
   });
-  it.todo('admin adds "display\\rcat.jpg" -> rejected (contains carriage return): admin page shows an error message, instruction not added');
+  it('admin adds "display\\rcat.jpg" -> rejected (contains carriage return): admin page shows an error message, instruction not added', async () => {
+    const addResponse = await addInstruction('display\rcat.jpg');
+
+    expect(errorMessage(addResponse.text)).toBeTruthy();
+    const response = await request(testApp).get('/instructions?after=0');
+    expect(response.text).toBe('');
+  });
 
   // Rule 2: length is checked AFTER trimming
   it.todo('admin adds 2 spaces + 100 characters + 2 spaces -> accepted and stored as the 100 characters');

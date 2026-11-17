@@ -8,6 +8,7 @@ import indexRouter from './routes/index';
 import { PhotoMetadataRepository } from './repositories/PhotoMetadataRepository';
 import { TogglePhotoSelectionCommand } from './commands/TogglePhotoSelectionCommand';
 import { InstructionRepository } from './repositories/InstructionRepository';
+import { AddInstructionCommand } from './commands/AddInstructionCommand';
 
 interface AppConfig {
   imageDir: string;
@@ -26,7 +27,9 @@ export function createApp(config: AppConfig) {
 
   app.set('photoMetadataRepository', photoMetadataRepository);
   app.set('togglePhotoSelectionCommand', togglePhotoSelectionCommand);
-  app.set('instructionRepository', new InstructionRepository());
+  const instructionRepository = new InstructionRepository();
+  app.set('instructionRepository', instructionRepository);
+  app.set('addInstructionCommand', new AddInstructionCommand(instructionRepository));
 
   app.set('views', path.join(__dirname, '../views'));
   app.set('view engine', 'pug');

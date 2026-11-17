@@ -4,6 +4,7 @@ import path from 'path';
 import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCommand';
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
 import { InstructionRepository } from '../repositories/InstructionRepository';
+import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -122,22 +123,18 @@ router.get('/instructions', function(req, res) {
 });
 
 router.post('/admin/instructions', function(req, res, next) {
-  const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
-  const text = req.body.text.trim();
+  const addInstructionCommand: AddInstructionCommand = req.app.get('addInstructionCommand');
 
-  if (text === '') {
-    renderAdminPage(req, res, next, 'Instruction must not be empty');
+  try {
+    addInstructionCommand.execute(req.body.text);
+  } catch (error) {
+    if (error instanceof InvalidInstructionError) {
+      renderAdminPage(req, res, next, error.message);
+      return;
+    }
+    next(error);
     return;
   }
-  if (text.length > 100) {
-    renderAdminPage(req, res, next, 'Instruction must be at most 100 characters');
-    return;
-  }
-  if (text.includes('\n')) {
-    renderAdminPage(req, res, next, 'Instruction must not contain line breaks');
-    return;
-  }
-  instructionRepository.add(text);
   res.redirect('/admin');
 });
 
