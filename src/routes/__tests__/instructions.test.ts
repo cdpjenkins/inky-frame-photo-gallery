@@ -115,7 +115,11 @@ describe('Instructions', () => {
 
     expect(response.status).toBe(400);
   });
-  it.todo('frame asks with an empty N ("after=") -> 400 Bad Request');
+  it('frame asks with an empty N ("after=") -> 400 Bad Request', async () => {
+    const response = await request(testApp).get('/instructions?after=');
+
+    expect(response.status).toBe(400);
+  });
 
   // Rule 7: admin page lists instructions
   it.todo('instructions 1-3 exist -> admin page lists 1, 2, 3 in that order, each with its sequence number and text');
