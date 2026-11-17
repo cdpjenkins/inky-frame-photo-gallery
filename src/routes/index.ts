@@ -91,7 +91,7 @@ router.patch('/api/photos/:filename', function(req, res, next) {
 });
 
 function parseSequenceNumber(value: unknown): number | undefined {
-  if (typeof value === 'string' && value.trim() === '') {
+  if (typeof value === 'string' && !/^\d+$/.test(value)) {
     return undefined;
   }
   const sequenceNumber = Number(value);

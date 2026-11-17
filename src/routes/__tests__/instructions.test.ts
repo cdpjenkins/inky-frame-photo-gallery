@@ -125,7 +125,11 @@ describe('Instructions', () => {
 
     expect(response.status).toBe(400);
   });
-  it.todo('frame asks after "0x10" (hexadecimal) -> 400 Bad Request');
+  it('frame asks after "0x10" (hexadecimal) -> 400 Bad Request', async () => {
+    const response = await request(testApp).get('/instructions?after=0x10');
+
+    expect(response.status).toBe(400);
+  });
   it.todo('frame asks after "1e1" (exponent notation) -> 400 Bad Request');
 
   // Rule 7: admin page lists instructions
