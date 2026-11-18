@@ -116,7 +116,12 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 3: the filename must contain no "/"
-  it.todo('admin types "SHOW /images/../secret.jpg" -> rejected with the SHOW error message, instruction not added');
+  it('admin types "SHOW /images/../secret.jpg" -> rejected with the SHOW error message, instruction not added', async () => {
+    const addResponse = await typeInstruction('SHOW /images/../secret.jpg');
+
+    expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   // Rule 3: a first word of "show" in any case is an attempted SHOW, and only uppercase SHOW is valid
   it.todo('admin types "show /images/cat.jpg" -> rejected with the SHOW error message, instruction not added');

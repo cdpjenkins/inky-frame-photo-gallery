@@ -11,8 +11,8 @@ function isAttemptedShowInstruction(text: string): boolean {
   return text.startsWith('SHOW');
 }
 
-// SHOW /images/<filename>.jpg, where the filename contains no whitespace.
-const SHOW_FORMAT = /^SHOW \/images\/\S*\.jpg$/;
+// SHOW /images/<filename>.jpg, where the filename contains no whitespace or "/".
+const SHOW_FORMAT = /^SHOW \/images\/[^\s/]*\.jpg$/;
 
 function hasShowFormat(text: string): boolean {
   return SHOW_FORMAT.test(text);
