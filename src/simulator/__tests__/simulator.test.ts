@@ -179,7 +179,15 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 6: Reset sets N to 0
-  it.todo('N is 8, click Reset -> N displayed and stored as 0');
+  it('N is 8, click Reset -> N displayed and stored as 0', () => {
+    storage.setItem(N_STORAGE_KEY, '8');
+    const simulator = openSimulator();
+
+    simulator.reset();
+
+    expect(view.n).toBe(0);
+    expect(storage.getItem(N_STORAGE_KEY)).toBe('0');
+  });
 
   // Rule 9: unknown instructions are ignored with a warning
   it.todo('cat.jpg displayed, Fetch, response "8 sleep" -> cat.jpg still displayed, warning logged');

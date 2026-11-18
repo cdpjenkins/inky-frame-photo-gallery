@@ -66,6 +66,11 @@ export class PhotoFrameSimulator {
     await this.carryOut(instructions);
   }
 
+  // Rule 6: Reset makes the simulator behave like a brand-new frame again.
+  reset(): void {
+    this.setN(FIRST_VISIT_N);
+  }
+
   // Rule 6: N is kept in local storage and displayed on the page; a first visit has none stored yet.
   private storedN(): number {
     const stored = this.ports.storage.getItem(N_STORAGE_KEY);
