@@ -144,7 +144,17 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 7: N becomes the highest seq in the response, counting instructions that are not SHOW
-  it.todo('N is 6, Fetch, response "7 SHOW /images/cat.jpg\\n8 sleep" -> N displayed and stored as 8');
+  it('N is 6, Fetch, response "7 SHOW /images/cat.jpg\\n8 sleep" -> N displayed and stored as 8', async () => {
+    storage.setItem(N_STORAGE_KEY, '6');
+    backend.respond('/instructions?after=6', 200, '7 SHOW /images/cat.jpg\n8 sleep');
+    backend.respond('/images/cat.jpg', 200);
+    const simulator = openSimulator();
+
+    await simulator.fetchInstructions();
+
+    expect(view.n).toBe(8);
+    expect(storage.getItem(N_STORAGE_KEY)).toBe('8');
+  });
 
   // Rule 7: an empty response has no highest seq, so N must not change
   it.todo('N is 8, Fetch, response "" -> N stays 8 and nothing on the page changes');

@@ -61,7 +61,23 @@ export class PhotoFrameSimulator {
     const response = await this.ports.fetch(`/instructions?after=${n}`);
     const body = await response.text();
 
-    const showPaths = parseInstructions(body)
+    const instructions = parseInstructions(body);
+
+    this.consume(instructions);
+    await this.carryOut(instructions);
+  }
+
+  // Rule 7: once fetched, instructions are consumed: N becomes the highest sequence number among them, whether or
+  // not each one is carried out successfully.
+  private consume(instructions: Instruction[]): void {
+    const highestSequenceNumber = Math.max(...instructions.map(instruction => instruction.sequenceNumber));
+    this.ports.storage.setItem(N_STORAGE_KEY, String(highestSequenceNumber));
+    this.ports.view.showN(highestSequenceNumber);
+  }
+
+  // Rule 8: of the SHOW instructions in one response, the last one wins.
+  private async carryOut(instructions: Instruction[]): Promise<void> {
+    const showPaths = instructions
       .map(instruction => showPathOf(instruction.text))
       .filter((path): path is string => path !== undefined);
     const lastShowPath = showPaths[showPaths.length - 1];
