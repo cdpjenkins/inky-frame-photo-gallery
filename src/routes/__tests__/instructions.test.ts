@@ -236,37 +236,113 @@ describe('Instructions', () => {
 
   describe('verification', () => {
     // Relies on: increasing sequence numbers (test 3)
-    it.todo('instructions 1-3 exist, admin adds "sleep" -> it gets seq 4');
+    it('instructions 1-3 exist, admin adds "sleep" -> it gets seq 4', async () => {
+      await addInstructions(3);
+      await addInstruction('sleep');
+
+      const response = await request(testApp).get('/instructions?after=3');
+
+      expect(response.text).toBe('4 sleep');
+    });
 
     // Relies on: line format and joining (tests 2, 3) + filtering after N (test 4)
-    it.todo('seq 4 "display /images/cat.jpg" and seq 5 "sleep", frame asks after 3 -> body is exactly "4 display /images/cat.jpg\\n5 sleep"');
+    it('seq 4 "display /images/cat.jpg" and seq 5 "sleep", frame asks after 3 -> body is exactly "4 display /images/cat.jpg\\n5 sleep"', async () => {
+      await addInstructions(3);
+      await addInstruction('display /images/cat.jpg');
+      await addInstruction('sleep');
+
+      const response = await request(testApp).get('/instructions?after=3');
+
+      expect(response.text).toBe('4 display /images/cat.jpg\n5 sleep');
+    });
 
     // Relies on: filtering after N (test 4)
-    it.todo('instructions 1-5 exist, frame asks after 0 (first boot) -> receives 1-5 in ascending order');
-    it.todo('instructions 1-5 exist, frame asks after 5 -> 200, empty body');
+    it('instructions 1-5 exist, frame asks after 0 (first boot) -> receives 1-5 in ascending order', async () => {
+      await addInstructions(5);
+
+      const response = await request(testApp).get('/instructions?after=0');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toBe('1 instruction 1\n2 instruction 2\n3 instruction 3\n4 instruction 4\n5 instruction 5');
+    });
+    it('instructions 1-5 exist, frame asks after 5 -> 200, empty body', async () => {
+      await addInstructions(5);
+
+      const response = await request(testApp).get('/instructions?after=5');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toBe('');
+    });
 
     // Relies on: 409 for N > latest (test 5); latest is 0 when there are no instructions (derived from Rule 5)
-    it.todo('no instructions exist, frame asks after 1 -> 409 Conflict');
+    it('no instructions exist, frame asks after 1 -> 409 Conflict', async () => {
+      const response = await request(testApp).get('/instructions?after=1');
+
+      expect(response.status).toBe(409);
+    });
 
     // Relies on: plain decimal digits check (test 12)
-    it.todo('frame asks after "1e1" (exponent notation) -> 400 Bad Request');
+    it('frame asks after "1e1" (exponent notation) -> 400 Bad Request', async () => {
+      const response = await request(testApp).get('/instructions?after=1e1');
+
+      expect(response.status).toBe(400);
+    });
 
     // Relies on: N must be a single string (test 13)
-    it.todo('frame asks with N given twice ("after=1&after=2") -> 400 Bad Request');
+    it('frame asks with N given twice ("after=1&after=2") -> 400 Bad Request', async () => {
+      const response = await request(testApp).get('/instructions?after=1&after=2');
+
+      expect(response.status).toBe(400);
+    });
 
     // Relies on: trimming (test 16) + empty rejection (test 17)
-    it.todo('admin adds "   " -> rejected as empty: admin page shows an error message, instruction not added');
+    it('admin adds "   " -> rejected as empty: admin page shows an error message, instruction not added', async () => {
+      const addResponse = await addInstruction('   ');
+
+      expect(errorMessage(addResponse.text)).toBeTruthy();
+      const response = await request(testApp).get('/instructions?after=0');
+      expect(response.text).toBe('');
+    });
 
     // Relies on: trimming (test 16) happening before the newline check (test 19)
-    it.todo('admin adds "sleep\\n" -> trimmed to "sleep" and accepted (frame asks after 0 and receives "1 sleep")');
+    it('admin adds "sleep\\n" -> trimmed to "sleep" and accepted (frame asks after 0 and receives "1 sleep")', async () => {
+      await addInstruction('sleep\n');
+
+      const response = await request(testApp).get('/instructions?after=0');
+
+      expect(response.text).toBe('1 sleep');
+    });
 
     // Relies on: length rejection (test 18); boundary
-    it.todo('admin adds exactly 100 characters -> accepted');
+    it('admin adds exactly 100 characters -> accepted', async () => {
+      const text = 'a'.repeat(100);
+      await addInstruction(text);
+
+      const response = await request(testApp).get('/instructions?after=0');
+
+      expect(response.text).toBe(`1 ${text}`);
+    });
 
     // Relies on: trimming (test 16) happening before the length check (test 18)
-    it.todo('admin adds 2 spaces + 100 characters + 2 spaces -> accepted and stored as the 100 characters');
+    it('admin adds 2 spaces + 100 characters + 2 spaces -> accepted and stored as the 100 characters', async () => {
+      const text = 'a'.repeat(100);
+      await addInstruction(`  ${text}  `);
+
+      const response = await request(testApp).get('/instructions?after=0');
+
+      expect(response.text).toBe(`1 ${text}`);
+    });
 
     // Relies on: rejection not adding (tests 17-20) + sequence numbering (test 3)
-    it.todo('latest seq is 3, admin submits "" then "sleep" -> "sleep" gets seq 4 (rejection uses up no sequence number)');
+    it('latest seq is 3, admin submits "" then "sleep" -> "sleep" gets seq 4 (rejection uses up no sequence number)', async () => {
+      await addInstructions(3);
+      const rejected = await addInstruction('');
+      expect(errorMessage(rejected.text)).toBeTruthy();
+      await addInstruction('sleep');
+
+      const response = await request(testApp).get('/instructions?after=3');
+
+      expect(response.text).toBe('4 sleep');
+    });
   });
 });
