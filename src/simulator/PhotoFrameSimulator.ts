@@ -74,7 +74,13 @@ export class PhotoFrameSimulator {
   // Asks the backend for the instructions after N. If the fetch fails, a message is shown and undefined is returned,
   // so that nothing is consumed or carried out (Rules 7 and 10).
   private async fetchNewInstructions(): Promise<Instruction[] | undefined> {
-    const response = await this.ports.fetch(`/instructions?after=${this.storedN()}`);
+    let response: SimulatorResponse;
+    try {
+      response = await this.ports.fetch(`/instructions?after=${this.storedN()}`);
+    } catch {
+      this.ports.view.showMessage('Could not reach the backend');
+      return undefined;
+    }
     if (!response.ok) {
       this.ports.view.showMessage(`Could not fetch instructions (${response.status})`);
       return undefined;

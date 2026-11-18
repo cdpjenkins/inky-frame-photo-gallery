@@ -241,7 +241,20 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 10: backend cannot be reached
-  it.todo('N is 8, cat.jpg displayed, Fetch, backend cannot be reached -> N stays 8, cat.jpg still displayed, message shown');
+  it('N is 8, cat.jpg displayed, Fetch, backend cannot be reached -> N stays 8, cat.jpg still displayed, message shown', async () => {
+    storage.setItem(N_STORAGE_KEY, '7');
+    const simulator = openSimulator();
+    await displayPhoto(simulator, '/images/cat.jpg');
+    backend.reachable = false;
+
+    await simulator.fetchInstructions();
+
+    expect(storage.getItem(N_STORAGE_KEY)).toBe('8');
+    expect(view.n).toBe(8);
+    expect(view.photo).toBe('/images/cat.jpg');
+    expect(view.messages).toHaveLength(1);
+    expect(view.messages[0]).not.toBe('');
+  });
 
   describe('verification', () => {
     // Moved from the driving tests during implementation: expected to pass already.
