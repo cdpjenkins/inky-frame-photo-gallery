@@ -3,8 +3,17 @@
 // src/routes/__tests__/showInstruction.test.ts.
 //
 // The simulator is a single-page TypeScript app served at /simulator. These tests describe what the page does,
-// not how it is built. How the tests drive the page (e.g. running the simulator code against a fake backend,
-// fake local storage and a spy on console.log) is decided when the first test is activated.
+// not how it is built.
+//
+// How the tests drive the page (agreed approach): the simulator's behaviour lives in PhotoFrameSimulator, whose
+// dependencies are injected as ports. The tests replace each port with a fake:
+// - fetch: a fake backend that records requested URLs and answers each URL with a status and body, or is
+//   unreachable (the fetch rejects, as a browser's fetch does on a network error).
+// - storage: a fake local storage (getItem/setItem).
+// - view: records what the page shows: N, the displayed photo, and messages.
+// - log: records console.log warnings.
+// The thin browser adapter that connects these ports to the real DOM, localStorage and console is not covered by
+// these tests.
 //
 // Terms:
 // - "Fetch" = the user clicks the "Fetch instructions" button.
@@ -16,9 +25,90 @@
 // - "Warning logged" = console.log is called with a warning. The spec does not define its text.
 // - "Reload" = a fresh simulator page using the same local storage.
 
+import { PhotoFrameSimulator, SimulatorView } from '../PhotoFrameSimulator';
+
+type FakeResponse = { status: number; body: string };
+
+class FakeBackend {
+  readonly requests: string[] = [];
+  private readonly responses = new Map<string, FakeResponse>();
+  reachable = true;
+
+  respond(url: string, status: number, body = ''): void {
+    this.responses.set(url, { status, body });
+  }
+
+  fetch = async (url: string) => {
+    this.requests.push(url);
+    if (!this.reachable) {
+      throw new TypeError('Failed to fetch');
+    }
+    const { status, body } = this.responses.get(url) ?? { status: 404, body: '' };
+    return { ok: status >= 200 && status < 300, status, text: async () => body };
+  };
+}
+
+class FakeStorage {
+  private readonly items = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.items.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.items.set(key, value);
+  }
+}
+
+class FakeView implements SimulatorView {
+  n?: number;
+  photo?: string;
+  readonly messages: string[] = [];
+
+  showN(n: number): void {
+    this.n = n;
+  }
+
+  showPhoto(path: string): void {
+    this.photo = path;
+  }
+
+  showMessage(message: string): void {
+    this.messages.push(message);
+  }
+}
+
+let backend: FakeBackend;
+let storage: FakeStorage;
+let view: FakeView;
+let logged: string[];
+
+function openSimulator(): PhotoFrameSimulator {
+  view = new FakeView();
+  const simulator = new PhotoFrameSimulator({
+    fetch: backend.fetch,
+    storage,
+    view,
+    log: message => logged.push(message),
+  });
+  simulator.start();
+  return simulator;
+}
+
+beforeEach(() => {
+  backend = new FakeBackend();
+  storage = new FakeStorage();
+  logged = [];
+});
+
 describe('Photo Frame Simulator (story 0006)', () => {
   // Rule 6 + Rule 8: starting state
-  it.todo('first visit (empty local storage) -> N displayed as 0, no image');
+  it('first visit (empty local storage) -> N displayed as 0, no image', () => {
+    openSimulator();
+
+    expect(view.n).toBe(0);
+    expect(view.photo).toBeUndefined();
+  });
 
   // Rule 5: Fetch asks for instructions after N
   it.todo('N is 6, Fetch -> simulator requests GET /instructions?after=6');
