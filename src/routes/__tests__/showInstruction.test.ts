@@ -100,7 +100,12 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 3: the filename must end in .jpg
-  it.todo('admin types "SHOW /images/cat.png" -> rejected with the SHOW error message, instruction not added');
+  it('admin types "SHOW /images/cat.png" -> rejected with the SHOW error message, instruction not added', async () => {
+    const addResponse = await typeInstruction('SHOW /images/cat.png');
+
+    expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   // Rule 3: the filename must contain no whitespace
   it.todo('admin types "SHOW /images/my cat.jpg" -> rejected with the SHOW error message, instruction not added');

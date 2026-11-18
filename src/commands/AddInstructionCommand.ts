@@ -7,8 +7,16 @@ const MALFORMED_SHOW_MESSAGE =
 
 export class InvalidInstructionError extends Error {}
 
+function isAttemptedShowInstruction(text: string): boolean {
+  return text.startsWith('SHOW');
+}
+
+function hasShowFormat(text: string): boolean {
+  return text.startsWith('SHOW /images/') && text.endsWith('.jpg');
+}
+
 function isMalformedShowInstruction(text: string): boolean {
-  return text.startsWith('SHOW') && !text.startsWith('SHOW /images/');
+  return isAttemptedShowInstruction(text) && !hasShowFormat(text);
 }
 
 export class AddInstructionCommand {
