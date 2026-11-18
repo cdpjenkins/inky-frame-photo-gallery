@@ -49,6 +49,10 @@ function typeInstruction(text: string) {
   return request(testApp).post('/admin/instructions').type('form').send({ text });
 }
 
+function pickPhoto(filename: string) {
+  return request(testApp).post('/admin/show-photo').type('form').send({ filename });
+}
+
 function decodeHtmlEntities(text: string): string {
   return text
     .replace(/&quot;/g, '"')
@@ -165,7 +169,11 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 1: picking a photo adds SHOW /images/<filename>
-  it.todo('no instructions exist, admin picks cat.jpg -> frame asks after 0 and receives "1 SHOW /images/cat.jpg"');
+  it('no instructions exist, admin picks cat.jpg -> frame asks after 0 and receives "1 SHOW /images/cat.jpg"', async () => {
+    await pickPhoto('cat.jpg');
+
+    expect(await instructionsAfter(0)).toBe('1 SHOW /images/cat.jpg');
+  });
 
   // Rule 2: the picker leaves out filenames containing whitespace
   it.todo('image directory contains "my cat.jpg" -> the photo picker does not offer "my cat.jpg"');
