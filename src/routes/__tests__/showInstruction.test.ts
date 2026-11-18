@@ -63,6 +63,24 @@ function errorMessage(html: string): string | undefined {
   return message === undefined ? undefined : decodeHtmlEntities(message);
 }
 
+// The photo picker: a form on /admin posting to /admin/show-photo, with a <select name="filename"> whose options'
+// values are the filenames offered. Returns undefined if there is no such form.
+function pickerOptions(html: string): string[] | undefined {
+  const form = html.match(/<form([^>]*action="\/admin\/show-photo"[^>]*)>([\s\S]*?)<\/form>/);
+  if (!form) {
+    return undefined;
+  }
+  const [, formAttributes, formContent] = form;
+  if (!/method="post"/i.test(formAttributes)) {
+    return undefined;
+  }
+  const select = formContent.match(/<select[^>]*name="filename"[^>]*>([\s\S]*?)<\/select>/);
+  if (!select) {
+    return undefined;
+  }
+  return [...select[1].matchAll(/<option[^>]*value="([^"]*)"/g)].map(([, value]) => decodeHtmlEntities(value));
+}
+
 async function instructionsAfter(n: number) {
   return (await request(testApp).get(`/instructions?after=${n}`)).text;
 }
@@ -139,7 +157,12 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 2: the picker lists .jpg photos
-  it.todo('image directory contains cat.jpg -> admin page has a photo picker offering cat.jpg');
+  it('image directory contains cat.jpg -> admin page has a photo picker offering cat.jpg', async () => {
+    const response = await request(testApp).get('/admin');
+
+    expect(response.status).toBe(200);
+    expect(pickerOptions(response.text)).toContain('cat.jpg');
+  });
 
   // Rule 1: picking a photo adds SHOW /images/<filename>
   it.todo('no instructions exist, admin picks cat.jpg -> frame asks after 0 and receives "1 SHOW /images/cat.jpg"');
