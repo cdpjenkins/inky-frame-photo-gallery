@@ -12,17 +12,92 @@
 //   A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains no whitespace or "/".
 //
 // Picker tests use their own temporary image directory containing "cat.jpg", "my cat.jpg", "cat.png" and
-// "cat.JPG", so the shared test-fixtures/images directory is left unchanged.
+// "bird.JPG", so the shared test-fixtures/images directory is left unchanged. (Not "cat.JPG": on a
+// case-insensitive filesystem such as default macOS, it would be the same file as "cat.jpg".)
 //
 // Rule 2 also excludes filenames containing "/". A file on disk cannot have "/" in its name, so no test covers
 // that case.
 
+import request from 'supertest';
+import path from 'path';
+import fs from 'fs';
+import http from 'http';
+import os from 'os';
+import { createApp } from '../../app';
+
+const SHOW_ERROR_MESSAGE =
+  'A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains no whitespace or "/".';
+
+// Each test gets a fresh temporary directory holding its own images and instructions file.
+let testDir: string;
+let testImageDir: string;
+let testApp: http.Server;
+
+// Started explicitly on 127.0.0.1; see the note in instructions.test.ts.
+async function startApp() {
+  const app = createApp({ imageDir: testImageDir, instructionsPath: path.join(testDir, 'instructions.json') });
+  testApp = await new Promise<http.Server>(resolve => {
+    const server = app.listen(0, '127.0.0.1', () => resolve(server));
+  });
+}
+
+function stopApp() {
+  return new Promise<void>(resolve => testApp.close(() => resolve()));
+}
+
+function typeInstruction(text: string) {
+  return request(testApp).post('/admin/instructions').type('form').send({ text });
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+function errorMessage(html: string): string | undefined {
+  const message = html.match(/<[^>]*role="alert"[^>]*>([^<]*)</)?.[1].trim();
+  return message === undefined ? undefined : decodeHtmlEntities(message);
+}
+
+async function instructionsAfter(n: number) {
+  return (await request(testApp).get(`/instructions?after=${n}`)).text;
+}
+
+beforeEach(async () => {
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'show-instruction-test-'));
+  testImageDir = path.join(testDir, 'images');
+  fs.mkdirSync(testImageDir);
+  for (const filename of ['cat.jpg', 'my cat.jpg', 'cat.png', 'bird.JPG']) {
+    fs.writeFileSync(path.join(testImageDir, filename), '');
+  }
+  await startApp();
+});
+
+afterEach(async () => {
+  await stopApp();
+  fs.rmSync(testDir, { recursive: true, force: true });
+});
+
 describe('Show photo instruction (story 0006)', () => {
   // Rule 3: an attempted SHOW with no path is rejected with the exact message
-  it.todo('admin types "SHOW" -> rejected: admin page shows the SHOW error message, frame asks after 0 and receives an empty body');
+  it('admin types "SHOW" -> rejected: admin page shows the SHOW error message, frame asks after 0 and receives an empty body', async () => {
+    const addResponse = await typeInstruction('SHOW');
+
+    expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   // Rule 3: the path must start with /images/
-  it.todo('admin types "SHOW cat.jpg" -> rejected with the SHOW error message, instruction not added');
+  it('admin types "SHOW cat.jpg" -> rejected with the SHOW error message, instruction not added', async () => {
+    const addResponse = await typeInstruction('SHOW cat.jpg');
+
+    expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   // Rule 3: the filename must end in .jpg
   it.todo('admin types "SHOW /images/cat.png" -> rejected with the SHOW error message, instruction not added');
@@ -86,6 +161,6 @@ describe('Show photo instruction (story 0006)', () => {
 
     // Relies on: picker lists only .jpg (test 8, reusing the existing lowercase .jpg filter)
     it.todo('image directory contains cat.png -> the photo picker does not offer cat.png');
-    it.todo('image directory contains cat.JPG -> the photo picker does not offer cat.JPG');
+    it.todo('image directory contains bird.JPG -> the photo picker does not offer bird.JPG');
   });
 });

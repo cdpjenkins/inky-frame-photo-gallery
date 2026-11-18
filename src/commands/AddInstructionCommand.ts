@@ -2,7 +2,14 @@ import { InstructionRepository } from '../repositories/InstructionRepository';
 
 const MAX_INSTRUCTION_LENGTH = 100;
 
+const MALFORMED_SHOW_MESSAGE =
+  'A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains no whitespace or "/".';
+
 export class InvalidInstructionError extends Error {}
+
+function isMalformedShowInstruction(text: string): boolean {
+  return text.startsWith('SHOW') && !text.startsWith('SHOW /images/');
+}
 
 export class AddInstructionCommand {
   constructor(private readonly repository: InstructionRepository) {}
@@ -18,6 +25,9 @@ export class AddInstructionCommand {
     }
     if (/[\r\n]/.test(text)) {
       throw new InvalidInstructionError('Instruction must not contain line breaks');
+    }
+    if (isMalformedShowInstruction(text)) {
+      throw new InvalidInstructionError(MALFORMED_SHOW_MESSAGE);
     }
 
     this.repository.add(text);
