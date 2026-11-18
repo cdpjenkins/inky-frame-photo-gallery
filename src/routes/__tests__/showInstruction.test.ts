@@ -176,7 +176,13 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 2: the picker leaves out filenames containing whitespace
-  it.todo('image directory contains "my cat.jpg" -> the photo picker does not offer "my cat.jpg"');
+  it('image directory contains "my cat.jpg" -> the photo picker does not offer "my cat.jpg"', async () => {
+    const response = await request(testApp).get('/admin');
+
+    const options = pickerOptions(response.text);
+    expect(options).toContain('cat.jpg');
+    expect(options).not.toContain('my cat.jpg');
+  });
 
   // Rule 5 (served by the backend): the simulator page
   it.todo('GET /simulator -> 200, HTML page');

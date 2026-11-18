@@ -13,8 +13,8 @@ block content
     button(type='submit') Add
   form(method='post' action='/admin/show-photo')
     select(name='filename')
-      each image in images
-        option(value=image.filename)= image.filename
+      each filename in pickablePhotos
+        option(value=filename)= filename
     button(type='submit') Show on frame
 
   - var selectedImages = images.filter(img => img.selected)

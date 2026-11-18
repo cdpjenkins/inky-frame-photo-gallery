@@ -1,13 +1,18 @@
 // The SHOW instruction (story 0006): tells a photo frame to download and display one photo.
+// Its form is "SHOW /images/<filename>", where <filename> is a showable filename.
+
+const SHOW_PREFIX = 'SHOW /images/';
 
 export const MALFORMED_SHOW_MESSAGE =
   'A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains no whitespace or "/".';
 
-// SHOW /images/<filename>.jpg, where the filename contains no whitespace or "/".
-const SHOW_FORMAT = /^SHOW \/images\/[^\s/]*\.jpg$/;
+// A photo can be shown if its filename ends in ".jpg" and contains no whitespace or "/".
+export function isShowableFilename(filename: string): boolean {
+  return filename.endsWith('.jpg') && !/[\s/]/.test(filename);
+}
 
 export function showInstructionFor(filename: string): string {
-  return `SHOW /images/${filename}`;
+  return `${SHOW_PREFIX}${filename}`;
 }
 
 function isAttemptedShowInstruction(text: string): boolean {
@@ -16,7 +21,7 @@ function isAttemptedShowInstruction(text: string): boolean {
 }
 
 function hasShowFormat(text: string): boolean {
-  return SHOW_FORMAT.test(text);
+  return text.startsWith(SHOW_PREFIX) && isShowableFilename(text.slice(SHOW_PREFIX.length));
 }
 
 export function isMalformedShowInstruction(text: string): boolean {

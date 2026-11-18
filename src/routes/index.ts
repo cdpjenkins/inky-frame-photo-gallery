@@ -5,7 +5,7 @@ import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCom
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
-import { showInstructionFor } from '../instructions/showInstruction';
+import { isShowableFilename, showInstructionFor } from '../instructions/showInstruction';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -47,7 +47,8 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
     if (error) {
       res.status(400);
     }
-    res.render('admin', { title: 'Admin', images: imagesWithSelection, instructions: instructionRepository.getAll(), error });
+    const pickablePhotos = jpgFiles.filter(isShowableFilename);
+    res.render('admin', { title: 'Admin', images: imagesWithSelection, pickablePhotos, instructions: instructionRepository.getAll(), error });
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       res.status(404).json({ error: 'Not found' });
