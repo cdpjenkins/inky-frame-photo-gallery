@@ -25,7 +25,7 @@
 // - "Warning logged" = console.log is called with a warning. The spec does not define its text.
 // - "Reload" = a fresh simulator page using the same local storage.
 
-import { PhotoFrameSimulator, SimulatorView } from '../PhotoFrameSimulator';
+import { N_STORAGE_KEY, PhotoFrameSimulator, SimulatorView } from '../PhotoFrameSimulator';
 
 type FakeResponse = { status: number; body: string };
 
@@ -111,7 +111,14 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 5: Fetch asks for instructions after N
-  it.todo('N is 6, Fetch -> simulator requests GET /instructions?after=6');
+  it('N is 6, Fetch -> simulator requests GET /instructions?after=6', async () => {
+    storage.setItem(N_STORAGE_KEY, '6');
+    const simulator = openSimulator();
+
+    await simulator.fetchInstructions();
+
+    expect(backend.requests).toEqual(['/instructions?after=6']);
+  });
 
   // Rule 8: a SHOW displays its photo
   it.todo('Fetch, response "7 SHOW /images/cat.jpg" -> displayed photo is /images/cat.jpg');
