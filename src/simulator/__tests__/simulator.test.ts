@@ -224,18 +224,34 @@ describe('Photo Frame Simulator (story 0006)', () => {
     expect(view.messages[0]).not.toBe('');
   });
 
-  // Rule 8 + Rule 10: if the last SHOW fails, there is no fallback to an earlier SHOW in the same response.
-  // The story's example uses cat.jpg as both the current photo and seq 8, which cannot tell "kept" from
-  // "fell back". This test uses bird.jpg as the current photo so the two outcomes differ.
-  it.todo('bird.jpg displayed, Fetch, response "8 SHOW /images/cat.jpg\\n9 SHOW /images/dog.jpg", dog.jpg returns 404 -> bird.jpg still displayed (not cat.jpg), message shown');
-
   // Rule 7 + Rule 10: a failed instructions fetch leaves N and the photo unchanged
-  it.todo('N is 12, cat.jpg displayed, Fetch, /instructions returns 409 -> N stays 12, cat.jpg still displayed, message shown');
+  it('N is 12, cat.jpg displayed, Fetch, /instructions returns 409 -> N stays 12, cat.jpg still displayed, message shown', async () => {
+    storage.setItem(N_STORAGE_KEY, '11');
+    const simulator = openSimulator();
+    await displayPhoto(simulator, '/images/cat.jpg');
+    backend.respond('/instructions?after=12', 409, 'Conflict');
+
+    await simulator.fetchInstructions();
+
+    expect(storage.getItem(N_STORAGE_KEY)).toBe('12');
+    expect(view.n).toBe(12);
+    expect(view.photo).toBe('/images/cat.jpg');
+    expect(view.messages).toHaveLength(1);
+    expect(view.messages[0]).not.toBe('');
+  });
 
   // Rule 10: backend cannot be reached
   it.todo('N is 8, cat.jpg displayed, Fetch, backend cannot be reached -> N stays 8, cat.jpg still displayed, message shown');
 
   describe('verification', () => {
+    // Moved from the driving tests during implementation: expected to pass already.
+    // Relies on: last SHOW wins (test 4: only the last SHOW is carried out) + photo download failure (test 10:
+    // the current photo stays and a message is shown).
+    // Rule 8 + Rule 10: if the last SHOW fails, there is no fallback to an earlier SHOW in the same response.
+    // The story's example uses cat.jpg as both the current photo and seq 8, which cannot tell "kept" from
+    // "fell back". This test uses bird.jpg as the current photo so the two outcomes differ.
+    it.todo('bird.jpg displayed, Fetch, response "8 SHOW /images/cat.jpg\\n9 SHOW /images/dog.jpg", dog.jpg returns 404 -> bird.jpg still displayed (not cat.jpg), message shown');
+
     // Relies on: starting N of 0 (test 1) + Fetch after N (test 2)
     it.todo('first visit, Fetch -> simulator requests GET /instructions?after=0');
 

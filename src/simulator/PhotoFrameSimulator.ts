@@ -57,10 +57,10 @@ export class PhotoFrameSimulator {
   }
 
   async fetchInstructions(): Promise<void> {
-    const response = await this.ports.fetch(`/instructions?after=${this.storedN()}`);
-    const body = await response.text();
-
-    const instructions = parseInstructions(body);
+    const instructions = await this.fetchNewInstructions();
+    if (instructions === undefined) {
+      return;
+    }
 
     this.consume(instructions);
     await this.carryOut(instructions);
@@ -69,6 +69,17 @@ export class PhotoFrameSimulator {
   // Rule 6: Reset makes the simulator behave like a brand-new frame again.
   reset(): void {
     this.setN(FIRST_VISIT_N);
+  }
+
+  // Asks the backend for the instructions after N. If the fetch fails, a message is shown and undefined is returned,
+  // so that nothing is consumed or carried out (Rules 7 and 10).
+  private async fetchNewInstructions(): Promise<Instruction[] | undefined> {
+    const response = await this.ports.fetch(`/instructions?after=${this.storedN()}`);
+    if (!response.ok) {
+      this.ports.view.showMessage(`Could not fetch instructions (${response.status})`);
+      return undefined;
+    }
+    return parseInstructions(await response.text());
   }
 
   // Rule 6: N is kept in local storage and displayed on the page; a first visit has none stored yet.
