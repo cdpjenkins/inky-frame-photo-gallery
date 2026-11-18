@@ -30,6 +30,25 @@ export interface SimulatorPorts {
   log(message: string): void;
 }
 
+interface Instruction {
+  sequenceNumber: number;
+  text: string;
+}
+
+// The /instructions response (story 0001): one instruction per line, as "<seq> <text>".
+function parseInstructions(body: string): Instruction[] {
+  return body
+    .split('\n')
+    .map(line => line.match(/^(\d+) (.*)$/))
+    .filter((match): match is RegExpMatchArray => match !== null)
+    .map(([, sequenceNumber, text]) => ({ sequenceNumber: Number(sequenceNumber), text }));
+}
+
+// A SHOW instruction is "SHOW <path>"; returns the path, or undefined if the text is not a SHOW.
+function showPathOf(text: string): string | undefined {
+  return text.match(/^SHOW (\S+)$/)?.[1];
+}
+
 export class PhotoFrameSimulator {
   constructor(private readonly ports: SimulatorPorts) {}
 
@@ -42,9 +61,12 @@ export class PhotoFrameSimulator {
     const response = await this.ports.fetch(`/instructions?after=${n}`);
     const body = await response.text();
 
-    const show = body.match(/^\d+ SHOW (\S+)$/);
-    if (show) {
-      await this.showPhoto(show[1]);
+    const showPaths = parseInstructions(body)
+      .map(instruction => showPathOf(instruction.text))
+      .filter((path): path is string => path !== undefined);
+    const lastShowPath = showPaths[showPaths.length - 1];
+    if (lastShowPath !== undefined) {
+      await this.showPhoto(lastShowPath);
     }
   }
 
