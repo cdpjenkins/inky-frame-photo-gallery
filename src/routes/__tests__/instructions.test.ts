@@ -12,17 +12,33 @@
 import request from 'supertest';
 import path from 'path';
 import fs from 'fs';
+import http from 'http';
+import os from 'os';
+import { AddressInfo } from 'net';
 import { createApp } from '../../app';
 
 const testImageDir = path.join(__dirname, '../../../test-fixtures/images');
-const testInstructionsPath = path.join(__dirname, '../../../test-fixtures/test-instructions.json');
 
-let testApp: any;
+// Each test gets its own instructions file in a fresh temporary directory, so concurrent test runs
+// (e.g. an IDE runner alongside the CLI) cannot see each other's instructions.
+let testInstructionsDir: string;
+let testInstructionsPath: string;
 
-function removeTestInstructions() {
-  if (fs.existsSync(testInstructionsPath)) {
-    fs.unlinkSync(testInstructionsPath);
-  }
+// The app is started explicitly on 127.0.0.1. Passing the bare app to supertest makes it listen on "::"
+// (all addresses), and on macOS that port can also be held on 127.0.0.1 by another local process, which then
+// receives some of the test's requests (seen as intermittent failures with unexpected 401 responses).
+let testApp: http.Server;
+
+async function startApp() {
+  const app = createApp({ imageDir: testImageDir, instructionsPath: testInstructionsPath });
+  testApp = await new Promise<http.Server>(resolve => {
+    const server = app.listen(0, '127.0.0.1', () => resolve(server));
+  });
+  expect((testApp.address() as AddressInfo).address).toBe('127.0.0.1');
+}
+
+function stopApp() {
+  return new Promise<void>(resolve => testApp.close(() => resolve()));
 }
 
 function addInstruction(text: string) {
@@ -39,13 +55,15 @@ async function addInstructions(count: number) {
   }
 }
 
-beforeEach(() => {
-  removeTestInstructions();
-  testApp = createApp({ imageDir: testImageDir, instructionsPath: testInstructionsPath });
+beforeEach(async () => {
+  testInstructionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'instructions-test-'));
+  testInstructionsPath = path.join(testInstructionsDir, 'instructions.json');
+  await startApp();
 });
 
-afterEach(() => {
-  removeTestInstructions();
+afterEach(async () => {
+  await stopApp();
+  fs.rmSync(testInstructionsDir, { recursive: true, force: true });
 });
 
 describe('Instructions', () => {
@@ -205,7 +223,8 @@ describe('Instructions', () => {
   it('instructions 1-5 exist, backend restarts (new app, same storage) -> frame asks after 0 and receives 1-5; next instruction added gets seq 6', async () => {
     await addInstructions(5);
 
-    testApp = createApp({ imageDir: testImageDir, instructionsPath: testInstructionsPath });
+    await stopApp();
+    await startApp();
 
     const afterRestart = await request(testApp).get('/instructions?after=0');
     expect(afterRestart.text).toBe('1 instruction 1\n2 instruction 2\n3 instruction 3\n4 instruction 4\n5 instruction 5');
