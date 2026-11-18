@@ -116,9 +116,9 @@ No open questions - all ambiguities were resolved.
 
 ## New Stories (sliced out)
 
-- [0007](0007-check-show-photo-exists.md): Check that a SHOW instruction's photo exists before adding it
-- [0008](0008-support-other-image-formats.md): Support image formats other than `.jpg`
-- [0009](0009-validate-other-instructions.md): Validate instructions other than SHOW
+- [0007](../todo/0007-check-show-photo-exists.md): Check that a SHOW instruction's photo exists before adding it
+- [0008](../todo/0008-support-other-image-formats.md): Support image formats other than `.jpg`
+- [0009](../todo/0009-validate-other-instructions.md): Validate instructions other than SHOW
 
 ## Notes
 

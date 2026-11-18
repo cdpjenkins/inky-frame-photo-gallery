@@ -1,5 +1,5 @@
 // Test list for story 0006: Show Photo Instruction, Photo Frame Simulator part (Rules 5-10)
-// (stories/todo/0006-show-photo-instruction.md). Backend behaviour is in
+// (stories/doing/0006-show-photo-instruction.md). Backend behaviour is in
 // src/routes/__tests__/showInstruction.test.ts.
 //
 // The simulator is a single-page TypeScript app served at /simulator. These tests describe what the page does,

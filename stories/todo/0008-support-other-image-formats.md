@@ -2,7 +2,7 @@
 
 Status: Not yet example-mapped.
 
-Sliced out of [0006-show-photo-instruction](0006-show-photo-instruction.md) during its Example Mapping session.
+Sliced out of [0006-show-photo-instruction](../doing/0006-show-photo-instruction.md) during its Example Mapping session.
 
 ## Context
 

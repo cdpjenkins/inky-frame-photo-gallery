@@ -1,5 +1,5 @@
 // Test list for story 0006: Show Photo Instruction, backend part (Rules 1-5)
-// (stories/todo/0006-show-photo-instruction.md). Simulator behaviour (Rules 6-10) is in
+// (stories/doing/0006-show-photo-instruction.md). Simulator behaviour (Rules 6-10) is in
 // src/simulator/__tests__/simulator.test.ts.
 //
 // "Admin types X" = the admin submits X via the existing add-instruction form on /admin (story 0001).
