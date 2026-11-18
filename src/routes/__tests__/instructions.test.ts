@@ -1,4 +1,4 @@
-// Test list for story 0001: Instructions (stories/todo/0001-instructions.md)
+// Test list for story 0001: Instructions (stories/done/0001-instructions.md)
 //
 // "Frame asks after N" = the frame requests all instructions with a sequence number greater than N.
 // "Admin adds X" = the admin submits X via the add-instruction form on the /admin page.

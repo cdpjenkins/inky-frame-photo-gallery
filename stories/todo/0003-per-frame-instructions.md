@@ -2,7 +2,7 @@
 
 Status: Not yet example-mapped.
 
-Sliced out of [0001-instructions](0001-instructions.md) during its Example Mapping session.
+Sliced out of [0001-instructions](../done/0001-instructions.md) during its Example Mapping session.
 
 ## Context
 
