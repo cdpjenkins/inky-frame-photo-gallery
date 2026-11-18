@@ -132,7 +132,11 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 4: a line whose first word is not "show" stays free text, even if it starts with the letters SHOW
-  it.todo('admin types "SHOWING /images/cat.jpg" -> accepted as free text: frame asks after 0 and receives "1 SHOWING /images/cat.jpg"');
+  it('admin types "SHOWING /images/cat.jpg" -> accepted as free text: frame asks after 0 and receives "1 SHOWING /images/cat.jpg"', async () => {
+    await typeInstruction('SHOWING /images/cat.jpg');
+
+    expect(await instructionsAfter(0)).toBe('1 SHOWING /images/cat.jpg');
+  });
 
   // Rule 2: the picker lists .jpg photos
   it.todo('image directory contains cat.jpg -> admin page has a photo picker offering cat.jpg');
