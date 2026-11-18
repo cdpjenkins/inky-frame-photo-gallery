@@ -109,9 +109,14 @@ export class PhotoFrameSimulator {
     }
   }
 
-  // Carries out a SHOW instruction: downloads the photo, then displays it.
+  // Carries out a SHOW instruction: downloads the photo, then displays it (Rule 8). If the download fails, the
+  // currently displayed photo stays and a message is shown (Rule 10).
   private async showPhoto(path: string): Promise<void> {
-    await this.ports.fetch(path);
+    const photo = await this.ports.fetch(path);
+    if (!photo.ok) {
+      this.ports.view.showMessage(`Could not download ${path} (${photo.status})`);
+      return;
+    }
     this.ports.view.showPhoto(path);
   }
 }

@@ -211,7 +211,18 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 10: a photo that cannot be downloaded leaves the current photo and shows a message
-  it.todo('cat.jpg displayed, Fetch, response "8 SHOW /images/dog.jpg", dog.jpg returns 404 -> cat.jpg still displayed, message shown');
+  it('cat.jpg displayed, Fetch, response "8 SHOW /images/dog.jpg", dog.jpg returns 404 -> cat.jpg still displayed, message shown', async () => {
+    const simulator = openSimulator();
+    await displayPhoto(simulator, '/images/cat.jpg');
+    backend.respond('/instructions?after=1', 200, '8 SHOW /images/dog.jpg');
+    backend.respond('/images/dog.jpg', 404);
+
+    await simulator.fetchInstructions();
+
+    expect(view.photo).toBe('/images/cat.jpg');
+    expect(view.messages).toHaveLength(1);
+    expect(view.messages[0]).not.toBe('');
+  });
 
   // Rule 8 + Rule 10: if the last SHOW fails, there is no fallback to an earlier SHOW in the same response.
   // The story's example uses cat.jpg as both the current photo and seq 8, which cannot tell "kept" from
