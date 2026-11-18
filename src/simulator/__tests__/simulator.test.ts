@@ -170,7 +170,13 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 6: N survives a reload
-  it.todo('N is 8, reload -> N displayed as 8');
+  it('N is 8, reload -> N displayed as 8', () => {
+    storage.setItem(N_STORAGE_KEY, '8');
+
+    openSimulator();
+
+    expect(view.n).toBe(8);
+  });
 
   // Rule 6: Reset sets N to 0
   it.todo('N is 8, click Reset -> N displayed and stored as 0');

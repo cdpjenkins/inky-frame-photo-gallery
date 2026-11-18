@@ -53,12 +53,11 @@ export class PhotoFrameSimulator {
   constructor(private readonly ports: SimulatorPorts) {}
 
   start(): void {
-    this.ports.view.showN(FIRST_VISIT_N);
+    this.ports.view.showN(this.storedN());
   }
 
   async fetchInstructions(): Promise<void> {
-    const n = this.ports.storage.getItem(N_STORAGE_KEY) ?? FIRST_VISIT_N;
-    const response = await this.ports.fetch(`/instructions?after=${n}`);
+    const response = await this.ports.fetch(`/instructions?after=${this.storedN()}`);
     const body = await response.text();
 
     const instructions = parseInstructions(body);
@@ -67,15 +66,24 @@ export class PhotoFrameSimulator {
     await this.carryOut(instructions);
   }
 
+  // Rule 6: N is kept in local storage and displayed on the page; a first visit has none stored yet.
+  private storedN(): number {
+    const stored = this.ports.storage.getItem(N_STORAGE_KEY);
+    return stored === null ? FIRST_VISIT_N : Number(stored);
+  }
+
+  private setN(n: number): void {
+    this.ports.storage.setItem(N_STORAGE_KEY, String(n));
+    this.ports.view.showN(n);
+  }
+
   // Rule 7: once fetched, instructions are consumed: N becomes the highest sequence number among them, whether or
   // not each one is carried out successfully. An empty response consumes nothing, so N is unchanged.
   private consume(instructions: Instruction[]): void {
     if (instructions.length === 0) {
       return;
     }
-    const highestSequenceNumber = Math.max(...instructions.map(instruction => instruction.sequenceNumber));
-    this.ports.storage.setItem(N_STORAGE_KEY, String(highestSequenceNumber));
-    this.ports.view.showN(highestSequenceNumber);
+    this.setN(Math.max(...instructions.map(instruction => instruction.sequenceNumber)));
   }
 
   // Rule 8: of the SHOW instructions in one response, the last one wins.
