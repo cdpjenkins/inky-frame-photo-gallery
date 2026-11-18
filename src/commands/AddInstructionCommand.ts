@@ -8,7 +8,7 @@ const MALFORMED_SHOW_MESSAGE =
 export class InvalidInstructionError extends Error {}
 
 function isAttemptedShowInstruction(text: string): boolean {
-  return text.startsWith('SHOW');
+  return text.toUpperCase().startsWith('SHOW');
 }
 
 // SHOW /images/<filename>.jpg, where the filename contains no whitespace or "/".

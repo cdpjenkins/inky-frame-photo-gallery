@@ -124,7 +124,12 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 3: a first word of "show" in any case is an attempted SHOW, and only uppercase SHOW is valid
-  it.todo('admin types "show /images/cat.jpg" -> rejected with the SHOW error message, instruction not added');
+  it('admin types "show /images/cat.jpg" -> rejected with the SHOW error message, instruction not added', async () => {
+    const addResponse = await typeInstruction('show /images/cat.jpg');
+
+    expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   // Rule 4: a line whose first word is not "show" stays free text, even if it starts with the letters SHOW
   it.todo('admin types "SHOWING /images/cat.jpg" -> accepted as free text: frame asks after 0 and receives "1 SHOWING /images/cat.jpg"');
