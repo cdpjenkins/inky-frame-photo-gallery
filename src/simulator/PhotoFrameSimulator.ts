@@ -68,8 +68,11 @@ export class PhotoFrameSimulator {
   }
 
   // Rule 7: once fetched, instructions are consumed: N becomes the highest sequence number among them, whether or
-  // not each one is carried out successfully.
+  // not each one is carried out successfully. An empty response consumes nothing, so N is unchanged.
   private consume(instructions: Instruction[]): void {
+    if (instructions.length === 0) {
+      return;
+    }
     const highestSequenceNumber = Math.max(...instructions.map(instruction => instruction.sequenceNumber));
     this.ports.storage.setItem(N_STORAGE_KEY, String(highestSequenceNumber));
     this.ports.view.showN(highestSequenceNumber);

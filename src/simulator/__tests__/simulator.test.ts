@@ -157,7 +157,17 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 7: an empty response has no highest seq, so N must not change
-  it.todo('N is 8, Fetch, response "" -> N stays 8 and nothing on the page changes');
+  it('N is 8, Fetch, response "" -> N stays 8 and nothing on the page changes', async () => {
+    storage.setItem(N_STORAGE_KEY, '8');
+    backend.respond('/instructions?after=8', 200, '');
+    const simulator = openSimulator();
+    const pageBefore = { ...view, messages: [...view.messages] };
+
+    await simulator.fetchInstructions();
+
+    expect(storage.getItem(N_STORAGE_KEY)).toBe('8');
+    expect(view).toEqual(pageBefore);
+  });
 
   // Rule 6: N survives a reload
   it.todo('N is 8, reload -> N displayed as 8');
