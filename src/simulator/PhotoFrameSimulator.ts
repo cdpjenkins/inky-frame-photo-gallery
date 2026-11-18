@@ -92,11 +92,18 @@ export class PhotoFrameSimulator {
   }
 
   // Rule 8: of the SHOW instructions in one response, the last one wins.
+  // Rule 9: an instruction the simulator does not know is ignored, with a warning.
   private async carryOut(instructions: Instruction[]): Promise<void> {
-    const showPaths = instructions
-      .map(instruction => showPathOf(instruction.text))
-      .filter((path): path is string => path !== undefined);
-    const lastShowPath = showPaths[showPaths.length - 1];
+    let lastShowPath: string | undefined;
+    for (const instruction of instructions) {
+      const showPath = showPathOf(instruction.text);
+      if (showPath === undefined) {
+        this.ports.log(`Ignoring unknown instruction ${instruction.sequenceNumber}: ${instruction.text}`);
+      } else {
+        lastShowPath = showPath;
+      }
+    }
+
     if (lastShowPath !== undefined) {
       await this.showPhoto(lastShowPath);
     }

@@ -95,6 +95,15 @@ function openSimulator(): PhotoFrameSimulator {
   return simulator;
 }
 
+// Given: the simulator is displaying `path`, after fetching a single SHOW for it. N advances by 1.
+async function displayPhoto(simulator: PhotoFrameSimulator, path: string): Promise<void> {
+  const n = Number(storage.getItem(N_STORAGE_KEY) ?? '0');
+  backend.respond(`/instructions?after=${n}`, 200, `${n + 1} SHOW ${path}`);
+  backend.respond(path, 200);
+  await simulator.fetchInstructions();
+  expect(view.photo).toBe(path);
+}
+
 beforeEach(() => {
   backend = new FakeBackend();
   storage = new FakeStorage();
@@ -190,7 +199,16 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 9: unknown instructions are ignored with a warning
-  it.todo('cat.jpg displayed, Fetch, response "8 sleep" -> cat.jpg still displayed, warning logged');
+  it('cat.jpg displayed, Fetch, response "8 sleep" -> cat.jpg still displayed, warning logged', async () => {
+    const simulator = openSimulator();
+    await displayPhoto(simulator, '/images/cat.jpg');
+    backend.respond('/instructions?after=1', 200, '8 sleep');
+
+    await simulator.fetchInstructions();
+
+    expect(view.photo).toBe('/images/cat.jpg');
+    expect(logged).toHaveLength(1);
+  });
 
   // Rule 10: a photo that cannot be downloaded leaves the current photo and shows a message
   it.todo('cat.jpg displayed, Fetch, response "8 SHOW /images/dog.jpg", dog.jpg returns 404 -> cat.jpg still displayed, message shown');
