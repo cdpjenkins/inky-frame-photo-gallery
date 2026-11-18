@@ -152,4 +152,8 @@ router.post('/admin/show-photo', function(req, res, next) {
   res.redirect('/admin');
 });
 
+router.get('/simulator', function(req, res) {
+  res.render('simulator', { title: 'Photo Frame Simulator' });
+});
+
 export default router;

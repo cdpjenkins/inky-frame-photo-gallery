@@ -185,7 +185,12 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 5 (served by the backend): the simulator page
-  it.todo('GET /simulator -> 200, HTML page');
+  it('GET /simulator -> 200, HTML page', async () => {
+    const response = await request(testApp).get('/simulator');
+
+    expect(response.status).toBe(200);
+    expect(response.type).toBe('text/html');
+  });
 
   describe('verification', () => {
     // Accepts a valid SHOW. This already passes before the story (free text), and must keep passing once
