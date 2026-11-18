@@ -39,6 +39,18 @@ export class PhotoFrameSimulator {
 
   async fetchInstructions(): Promise<void> {
     const n = this.ports.storage.getItem(N_STORAGE_KEY) ?? FIRST_VISIT_N;
-    await this.ports.fetch(`/instructions?after=${n}`);
+    const response = await this.ports.fetch(`/instructions?after=${n}`);
+    const body = await response.text();
+
+    const show = body.match(/^\d+ SHOW (\S+)$/);
+    if (show) {
+      await this.showPhoto(show[1]);
+    }
+  }
+
+  // Carries out a SHOW instruction: downloads the photo, then displays it.
+  private async showPhoto(path: string): Promise<void> {
+    await this.ports.fetch(path);
+    this.ports.view.showPhoto(path);
   }
 }

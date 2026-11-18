@@ -121,7 +121,15 @@ describe('Photo Frame Simulator (story 0006)', () => {
   });
 
   // Rule 8: a SHOW displays its photo
-  it.todo('Fetch, response "7 SHOW /images/cat.jpg" -> displayed photo is /images/cat.jpg');
+  it('Fetch, response "7 SHOW /images/cat.jpg" -> displayed photo is /images/cat.jpg', async () => {
+    backend.respond('/instructions?after=0', 200, '7 SHOW /images/cat.jpg');
+    backend.respond('/images/cat.jpg', 200);
+    const simulator = openSimulator();
+
+    await simulator.fetchInstructions();
+
+    expect(view.photo).toBe('/images/cat.jpg');
+  });
 
   // Rule 8: the last SHOW in a response wins
   it.todo('Fetch, response "7 SHOW /images/cat.jpg\\n8 SHOW /images/dog.jpg" -> displayed photo is /images/dog.jpg');
