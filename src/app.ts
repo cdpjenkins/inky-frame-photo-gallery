@@ -16,6 +16,15 @@ interface AppConfig {
   instructionsPath?: string;
 }
 
+// Story 0011, Rule 3: a JSON body that cannot be parsed gets a JSON 400, not the HTML error page.
+function rejectInvalidJsonBody(err: any, req: Request, res: Response, next: NextFunction) {
+  if (err.type !== 'entity.parse.failed') {
+    next(err);
+    return;
+  }
+  res.status(400).json({ error: 'Request body must be valid JSON' });
+}
+
 export function createApp(config: AppConfig) {
   const app = express();
 
@@ -46,6 +55,8 @@ export function createApp(config: AppConfig) {
   app.use(function(req: Request, res: Response, next: NextFunction) {
     next(createError(404));
   });
+
+  app.use(rejectInvalidJsonBody);
 
   app.use(function(err: any, req: Request, res: Response, next: NextFunction) {
     res.locals.message = err.message;

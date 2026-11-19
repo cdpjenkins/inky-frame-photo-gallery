@@ -85,7 +85,15 @@ describe('Reject invalid request bodies (story 0011)', () => {
   });
 
   // Rule 3: a PATCH body that is not valid JSON
-  it.todo('PATCH cat.jpg with the body "{selected:" (Content-Type application/json) -> 400 { "error": "Request body must be valid JSON" }');
+  it('PATCH cat.jpg with the body "{selected:" (Content-Type application/json) -> 400 { "error": "Request body must be valid JSON" }', async () => {
+    const response = await request(testApp)
+      .patch('/api/photos/cat.jpg')
+      .set('Content-Type', 'application/json')
+      .send('{selected:');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Request body must be valid JSON' });
+  });
 
   // Rule 4: text must be a string
   it.todo('admin adds an instruction with no text field -> 400, admin page shows "Instruction must be text", frame asks after 0 and receives an empty body');
