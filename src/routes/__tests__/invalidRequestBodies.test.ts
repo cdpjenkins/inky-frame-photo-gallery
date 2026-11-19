@@ -132,7 +132,13 @@ describe('Reject invalid request bodies (story 0011)', () => {
   });
 
   // Rule 5: the filename must be one that can be shown
-  it.todo('Show on frame for "my cat.jpg" -> 400, admin page shows the SHOW error message, frame asks after 0 and receives an empty body');
+  it('Show on frame for "my cat.jpg" -> 400, admin page shows the SHOW error message, frame asks after 0 and receives an empty body', async () => {
+    const response = await showOnFrame('filename=my%20cat.jpg');
+
+    expect(response.status).toBe(400);
+    expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   // Rule 5: a filename sent more than once is not a filename that can be shown. Express turns it into a list, which
   // would otherwise become the valid-looking "SHOW /images/cat.jpg,dog.jpg".

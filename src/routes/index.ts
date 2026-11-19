@@ -128,15 +128,13 @@ router.get('/instructions', function(req, res) {
   res.send(instructions.map(({ sequenceNumber, text }) => `${sequenceNumber} ${text}`).join('\n'));
 });
 
-router.post('/admin/instructions', function(req, res, next) {
+// Adds an instruction submitted from the admin page: on success, back to the admin page; if the instruction is
+// rejected, the admin page is shown again with the reason.
+function addInstructionFromAdminPage(req: Request, res: Response, next: NextFunction, text: string) {
   const addInstructionCommand: AddInstructionCommand = req.app.get('addInstructionCommand');
-  if (typeof req.body.text !== 'string') {
-    renderAdminPage(req, res, next, 'Instruction must be text');
-    return;
-  }
 
   try {
-    addInstructionCommand.execute(req.body.text);
+    addInstructionCommand.execute(text);
   } catch (error) {
     if (error instanceof InvalidInstructionError) {
       renderAdminPage(req, res, next, error.message);
@@ -146,18 +144,18 @@ router.post('/admin/instructions', function(req, res, next) {
     return;
   }
   res.redirect('/admin');
+}
+
+router.post('/admin/instructions', function(req, res, next) {
+  if (typeof req.body.text !== 'string') {
+    renderAdminPage(req, res, next, 'Instruction must be text');
+    return;
+  }
+  addInstructionFromAdminPage(req, res, next, req.body.text);
 });
 
 router.post('/admin/show-photo', function(req, res, next) {
-  const addInstructionCommand: AddInstructionCommand = req.app.get('addInstructionCommand');
-
-  try {
-    addInstructionCommand.execute(showInstructionFor(req.body.filename));
-  } catch (error) {
-    next(error);
-    return;
-  }
-  res.redirect('/admin');
+  addInstructionFromAdminPage(req, res, next, showInstructionFor(req.body.filename));
 });
 
 router.get('/simulator', function(req, res) {
