@@ -4,7 +4,7 @@ import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCom
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
-import { isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
+import { MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
 import { isPhotoFilename } from '../photos/photoFilename';
 import { readPhotos } from '../photos/photoFolder';
 const router = express.Router();
@@ -18,7 +18,7 @@ router.get('/list', async function(req, res, next) {
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
 
-    const photos = await readPhotos(imageDir);
+    const { photos } = await readPhotos(imageDir);
     const selectedFiles = photos.filter(file => photoMetadataRepository.getSelection(file));
     const selectedFilesWithPrefix = selectedFiles.map(file => `/images/${file}`);
 
@@ -37,17 +37,22 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
   try {
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
-    const photos = await readPhotos(imageDir);
+    const { photos, skippedPhotos } = await readPhotos(imageDir);
     const galleryImages = photos.map(file => ({
       filename: file,
       selected: photoMetadataRepository.getSelection(file),
-      showable: isShowableFilename(file),
     }));
     const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
     if (error) {
       res.status(400);
     }
-    res.render('admin', { title: 'Admin', images: galleryImages, instructions: instructionRepository.getAll(), error });
+    res.render('admin', {
+      title: 'Admin',
+      images: galleryImages,
+      photosWereSkipped: skippedPhotos.length > 0,
+      instructions: instructionRepository.getAll(),
+      error,
+    });
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       res.status(404).json({ error: 'Not found' });

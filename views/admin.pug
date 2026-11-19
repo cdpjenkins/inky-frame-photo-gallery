@@ -11,7 +11,8 @@ block content
   form(method='post' action='/admin/instructions')
     input(type='text' name='text')
     button(type='submit') Add
-  p.notice Some photos were skipped because their names contain characters that are not allowed.
+  if photosWereSkipped
+    p.notice Some photos were skipped because their names contain characters that are not allowed.
 
   - var selectedImages = images.filter(img => img.selected)
   .selected-photos-section(style=selectedImages.length === 0 ? 'display: none;' : '')
@@ -32,10 +33,9 @@ block content
         label.checkbox-label
           input(type='checkbox' data-filename=image.filename checked=image.selected)
           span Select
-        if image.showable
-          form(method='post' action='/admin/show-photo')
-            input(type='hidden' name='filename' value=image.filename)
-            button(type='submit') Show on frame
+        form(method='post' action='/admin/show-photo')
+          input(type='hidden' name='filename' value=image.filename)
+          button(type='submit') Show on frame
 
   script.
     document.addEventListener('DOMContentLoaded', () => {

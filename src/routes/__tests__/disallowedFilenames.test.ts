@@ -185,7 +185,13 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 4: no notice when nothing was skipped
-  it.todo('folder holds only cat.jpg -> /admin does not show the notice');
+  it('folder holds only cat.jpg -> /admin does not show the notice', async () => {
+    await startWith(['cat.jpg']);
+
+    const page = decodeHtmlEntities(await adminPage());
+
+    expect(occurrences(page, SKIPPED_PHOTOS_NOTICE)).toBe(0);
+  });
 
   // Rule 5: typed SHOW must name an allowed filename; the new SHOW message
   it.todo('admin types "SHOW /images/summer#1.jpg" -> 400, admin page shows the SHOW message, frame asks after 0 and receives an empty body');
