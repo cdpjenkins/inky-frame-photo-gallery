@@ -63,7 +63,9 @@ class FakeStorage {
 class FakeView implements SimulatorView {
   n?: number;
   photo?: string;
+  // Every message shown so far, and the message currently on the page (undefined once cleared).
   readonly messages: string[] = [];
+  message?: string;
 
   showN(n: number): void {
     this.n = n;
@@ -75,6 +77,11 @@ class FakeView implements SimulatorView {
 
   showMessage(message: string): void {
     this.messages.push(message);
+    this.message = message;
+  }
+
+  clearMessage(): void {
+    this.message = undefined;
   }
 }
 
@@ -254,6 +261,21 @@ describe('Photo Frame Simulator (story 0006)', () => {
     expect(view.photo).toBe('/images/cat.jpg');
     expect(view.messages).toHaveLength(1);
     expect(view.messages[0]).not.toBe('');
+  });
+
+  // Rule 10: a message stays until a later fetch of /instructions succeeds
+  it('N is 8, Fetch, backend cannot be reached, message shown; backend reachable again, Fetch, response "9 sleep" -> message cleared', async () => {
+    storage.setItem(N_STORAGE_KEY, '8');
+    const simulator = openSimulator();
+    backend.reachable = false;
+    await simulator.fetchInstructions();
+    expect(view.message).toBeDefined();
+    backend.reachable = true;
+    backend.respond('/instructions?after=8', 200, '9 sleep');
+
+    await simulator.fetchInstructions();
+
+    expect(view.message).toBeUndefined();
   });
 
   describe('verification', () => {

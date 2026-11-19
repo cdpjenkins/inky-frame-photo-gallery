@@ -27,6 +27,9 @@ const view: SimulatorView = {
   showMessage(text) {
     message.textContent = text;
   },
+  clearMessage() {
+    message.textContent = '';
+  },
 };
 
 const simulator = new PhotoFrameSimulator({

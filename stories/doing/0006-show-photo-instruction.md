@@ -47,6 +47,7 @@ No image is shown before any SHOW arrives. If one response contains several SHOW
 
 ### Rule 10: On failure, the currently displayed photo stays and a message is shown on the page
 Failures: the photo returns 404, `/instructions` returns an error (e.g. 409), or the backend cannot be reached.
+The message stays on the page until a later fetch of `/instructions` succeeds, which clears it.
 
 ## Examples (green)
 
@@ -109,6 +110,8 @@ Failures: the photo returns 404, `/instructions` returns an error (e.g. 409), or
   previously displayed photo stays (no fallback to seq 8), message shown
 - cat.jpg displayed; `/instructions` returns 409 -> cat.jpg stays, message shown
 - cat.jpg displayed; backend cannot be reached -> cat.jpg stays, message shown
+- N is 8; backend cannot be reached, message shown; backend is reachable again and the next fetch gets `9 sleep` -> message
+  cleared
 
 ## Questions (red)
 

@@ -21,6 +21,7 @@ export interface SimulatorView {
   showN(n: number): void;
   showPhoto(path: string): void;
   showMessage(message: string): void;
+  clearMessage(): void;
 }
 
 export interface SimulatorPorts {
@@ -72,7 +73,8 @@ export class PhotoFrameSimulator {
   }
 
   // Asks the backend for the instructions after N. If the fetch fails, a message is shown and undefined is returned,
-  // so that nothing is consumed or carried out (Rules 7 and 10).
+  // so that nothing is consumed or carried out (Rules 7 and 10). If it succeeds, any earlier message is cleared
+  // (Rule 10).
   private async fetchNewInstructions(): Promise<Instruction[] | undefined> {
     let response: SimulatorResponse;
     try {
@@ -85,6 +87,7 @@ export class PhotoFrameSimulator {
       this.ports.view.showMessage(`Could not fetch instructions (${response.status})`);
       return undefined;
     }
+    this.ports.view.clearMessage();
     return parseInstructions(await response.text());
   }
 
