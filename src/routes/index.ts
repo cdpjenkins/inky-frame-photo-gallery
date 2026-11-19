@@ -87,6 +87,10 @@ router.patch('/api/photos/:filename', function(req, res, next) {
     const togglePhotoSelectionCommand: TogglePhotoSelectionCommand = req.app.get('togglePhotoSelectionCommand');
     const filename = path.basename(req.params.filename);
     const { selected } = req.body;
+    if (typeof selected !== 'boolean') {
+      res.status(400).json({ error: 'selected must be true or false' });
+      return;
+    }
 
     togglePhotoSelectionCommand.execute(filename, selected);
 

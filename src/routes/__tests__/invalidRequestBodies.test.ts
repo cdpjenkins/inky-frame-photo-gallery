@@ -35,9 +35,54 @@ const SHOW_ERROR_MESSAGE =
 let testDir: string;
 let testApp: http.Server;
 
+// Started explicitly on 127.0.0.1; see the note in instructions.test.ts.
+async function startApp() {
+  const app = createApp({
+    imageDir: path.join(testDir, 'images'),
+    instructionsPath: path.join(testDir, 'instructions.json'),
+    metadataPath: path.join(testDir, 'photo-metadata.json'),
+  });
+  testApp = await new Promise<http.Server>(resolve => {
+    const server = app.listen(0, '127.0.0.1', () => resolve(server));
+  });
+}
+
+function stopApp() {
+  return new Promise<void>(resolve => testApp.close(() => resolve()));
+}
+
+function patchPhoto(filename: string, body: object) {
+  return request(testApp).patch(`/api/photos/${filename}`).send(body);
+}
+
+async function listedPhotos(): Promise<string[]> {
+  const text = (await request(testApp).get('/list')).text;
+  return text === '' ? [] : text.split('\n');
+}
+
+beforeEach(async () => {
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'invalid-request-bodies-test-'));
+  fs.mkdirSync(path.join(testDir, 'images'));
+  for (const filename of ['cat.jpg', 'my cat.jpg', 'cat.png']) {
+    fs.writeFileSync(path.join(testDir, 'images', filename), '');
+  }
+  await startApp();
+});
+
+afterEach(async () => {
+  await stopApp();
+  fs.rmSync(testDir, { recursive: true, force: true });
+});
+
 describe('Reject invalid request bodies (story 0011)', () => {
   // Rule 1: selected must be a JSON boolean
-  it.todo('cat.jpg not selected, PATCH cat.jpg with { "selected": "true" } -> 400 { "error": "selected must be true or false" }, /list does not include cat.jpg');
+  it('cat.jpg not selected, PATCH cat.jpg with { "selected": "true" } -> 400 { "error": "selected must be true or false" }, /list does not include cat.jpg', async () => {
+    const response = await patchPhoto('cat.jpg', { selected: 'true' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'selected must be true or false' });
+    expect(await listedPhotos()).not.toContain('/images/cat.jpg');
+  });
 
   // Rule 3: a PATCH body that is not valid JSON
   it.todo('PATCH cat.jpg with the body "{selected:" (Content-Type application/json) -> 400 { "error": "Request body must be valid JSON" }');
