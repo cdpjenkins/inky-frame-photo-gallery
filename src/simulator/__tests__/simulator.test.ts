@@ -263,24 +263,93 @@ describe('Photo Frame Simulator (story 0006)', () => {
     // Rule 8 + Rule 10: if the last SHOW fails, there is no fallback to an earlier SHOW in the same response.
     // The story's example uses cat.jpg as both the current photo and seq 8, which cannot tell "kept" from
     // "fell back". This test uses bird.jpg as the current photo so the two outcomes differ.
-    it.todo('bird.jpg displayed, Fetch, response "8 SHOW /images/cat.jpg\\n9 SHOW /images/dog.jpg", dog.jpg returns 404 -> bird.jpg still displayed (not cat.jpg), message shown');
+    it('bird.jpg displayed, Fetch, response "8 SHOW /images/cat.jpg\\n9 SHOW /images/dog.jpg", dog.jpg returns 404 -> bird.jpg still displayed (not cat.jpg), message shown', async () => {
+      const simulator = openSimulator();
+      await displayPhoto(simulator, '/images/bird.jpg');
+      backend.respond('/instructions?after=1', 200, '8 SHOW /images/cat.jpg\n9 SHOW /images/dog.jpg');
+      backend.respond('/images/cat.jpg', 200);
+      backend.respond('/images/dog.jpg', 404);
+
+      await simulator.fetchInstructions();
+
+      expect(view.photo).toBe('/images/bird.jpg');
+      expect(view.messages).toHaveLength(1);
+      expect(view.messages[0]).not.toBe('');
+    });
 
     // Relies on: starting N of 0 (test 1) + Fetch after N (test 2)
-    it.todo('first visit, Fetch -> simulator requests GET /instructions?after=0');
+    it('first visit, Fetch -> simulator requests GET /instructions?after=0', async () => {
+      backend.respond('/instructions?after=0', 200, '');
+      const simulator = openSimulator();
+
+      await simulator.fetchInstructions();
+
+      expect(backend.requests).toEqual(['/instructions?after=0']);
+    });
 
     // Relies on: N updated separately from carrying out instructions (test 5) + photo 404 handling (test 10)
-    it.todo('N is 6, Fetch, response "7 SHOW /images/dog.jpg", dog.jpg returns 404 -> N becomes 7 (seq 7 is consumed)');
+    it('N is 6, Fetch, response "7 SHOW /images/dog.jpg", dog.jpg returns 404 -> N becomes 7 (seq 7 is consumed)', async () => {
+      storage.setItem(N_STORAGE_KEY, '6');
+      backend.respond('/instructions?after=6', 200, '7 SHOW /images/dog.jpg');
+      backend.respond('/images/dog.jpg', 404);
+      const simulator = openSimulator();
+
+      await simulator.fetchInstructions();
+
+      expect(storage.getItem(N_STORAGE_KEY)).toBe('7');
+      expect(view.n).toBe(7);
+    });
 
     // Relies on: unknown-instruction handling (test 9); lowercase "show" is not SHOW
-    it.todo('Fetch, response "9 show /images/cat.jpg" -> no photo change, warning logged');
+    it('Fetch, response "9 show /images/cat.jpg" -> no photo change, warning logged', async () => {
+      backend.respond('/instructions?after=0', 200, '9 show /images/cat.jpg');
+      backend.respond('/images/cat.jpg', 200);
+      const simulator = openSimulator();
+
+      await simulator.fetchInstructions();
+
+      expect(view.photo).toBeUndefined();
+      expect(logged).toHaveLength(1);
+    });
 
     // Relies on: failed instructions fetch handling (test 12)
-    it.todo('N is 8, cat.jpg displayed, Fetch, /instructions returns 400 -> N stays 8, cat.jpg still displayed, message shown');
+    it('N is 8, cat.jpg displayed, Fetch, /instructions returns 400 -> N stays 8, cat.jpg still displayed, message shown', async () => {
+      storage.setItem(N_STORAGE_KEY, '7');
+      const simulator = openSimulator();
+      await displayPhoto(simulator, '/images/cat.jpg');
+      backend.respond('/instructions?after=8', 400, 'Bad Request');
+
+      await simulator.fetchInstructions();
+
+      expect(storage.getItem(N_STORAGE_KEY)).toBe('8');
+      expect(view.n).toBe(8);
+      expect(view.photo).toBe('/images/cat.jpg');
+      expect(view.messages).toHaveLength(1);
+      expect(view.messages[0]).not.toBe('');
+    });
 
     // Relies on: N persisted on update (test 5) + reload (test 7)
-    it.todo('N is 6, Fetch, response "7 sleep", reload -> N displayed as 7');
+    it('N is 6, Fetch, response "7 sleep", reload -> N displayed as 7', async () => {
+      storage.setItem(N_STORAGE_KEY, '6');
+      backend.respond('/instructions?after=6', 200, '7 sleep');
+      const simulator = openSimulator();
+      await simulator.fetchInstructions();
+
+      openSimulator();
+
+      expect(view.n).toBe(7);
+    });
 
     // Relies on: Reset (test 8) + Fetch after N (test 2)
-    it.todo('N is 8, click Reset, Fetch -> simulator requests GET /instructions?after=0');
+    it('N is 8, click Reset, Fetch -> simulator requests GET /instructions?after=0', async () => {
+      storage.setItem(N_STORAGE_KEY, '8');
+      backend.respond('/instructions?after=0', 200, '');
+      const simulator = openSimulator();
+
+      simulator.reset();
+      await simulator.fetchInstructions();
+
+      expect(backend.requests).toEqual(['/instructions?after=0']);
+    });
   });
 });

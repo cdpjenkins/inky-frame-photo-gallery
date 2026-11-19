@@ -195,38 +195,105 @@ describe('Show photo instruction (story 0006)', () => {
   describe('verification', () => {
     // Accepts a valid SHOW. This already passes before the story (free text), and must keep passing once
     // validation exists. Relies on: tests 1-6 rejecting only malformed SHOWs
-    it.todo('admin types "SHOW /images/cat.jpg" -> accepted: frame asks after 0 and receives "1 SHOW /images/cat.jpg"');
+    it('admin types "SHOW /images/cat.jpg" -> accepted: frame asks after 0 and receives "1 SHOW /images/cat.jpg"', async () => {
+      await typeInstruction('SHOW /images/cat.jpg');
+
+      expect(await instructionsAfter(0)).toBe('1 SHOW /images/cat.jpg');
+    });
 
     // Relies on: the valid-SHOW verification test above + Rule 3 does not check existence
-    it.todo('admin types "SHOW /images/dog.jpg" (dog.jpg is not in the image directory) -> accepted: frame receives "1 SHOW /images/dog.jpg"');
+    it('admin types "SHOW /images/dog.jpg" (dog.jpg is not in the image directory) -> accepted: frame receives "1 SHOW /images/dog.jpg"', async () => {
+      await typeInstruction('SHOW /images/dog.jpg');
+
+      expect(await instructionsAfter(0)).toBe('1 SHOW /images/dog.jpg');
+    });
 
     // Relies on: story 0001 trimming happening before SHOW validation (the valid-SHOW verification test above)
-    it.todo('admin types "  SHOW /images/cat.jpg  " -> trimmed and accepted: frame receives "1 SHOW /images/cat.jpg"');
+    it('admin types "  SHOW /images/cat.jpg  " -> trimmed and accepted: frame receives "1 SHOW /images/cat.jpg"', async () => {
+      await typeInstruction('  SHOW /images/cat.jpg  ');
+
+      expect(await instructionsAfter(0)).toBe('1 SHOW /images/cat.jpg');
+    });
 
     // Relies on: lowercase .jpg check (test 3)
-    it.todo('admin types "SHOW /images/cat.JPG" -> rejected with the SHOW error message, instruction not added');
+    it('admin types "SHOW /images/cat.JPG" -> rejected with the SHOW error message, instruction not added', async () => {
+      const addResponse = await typeInstruction('SHOW /images/cat.JPG');
+
+      expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: no-whitespace check (test 4)
-    it.todo('admin types "SHOW /images/my\\tcat.jpg" (tab) -> rejected with the SHOW error message, instruction not added');
-    it.todo('admin types "SHOW /images/cat.jpg extra" -> rejected with the SHOW error message, instruction not added');
+    it('admin types "SHOW /images/my\\tcat.jpg" (tab) -> rejected with the SHOW error message, instruction not added', async () => {
+      const addResponse = await typeInstruction('SHOW /images/my\tcat.jpg');
+
+      expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
+    it('admin types "SHOW /images/cat.jpg extra" -> rejected with the SHOW error message, instruction not added', async () => {
+      const addResponse = await typeInstruction('SHOW /images/cat.jpg extra');
+
+      expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: exact form "SHOW /images/" with a single space (tests 2, 4)
-    it.todo('admin types "SHOW  /images/cat.jpg" (two spaces) -> rejected with the SHOW error message, instruction not added');
+    it('admin types "SHOW  /images/cat.jpg" (two spaces) -> rejected with the SHOW error message, instruction not added', async () => {
+      const addResponse = await typeInstruction('SHOW  /images/cat.jpg');
+
+      expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: case-insensitive first word plus uppercase-only SHOW (test 6)
-    it.todo('admin types "Show /images/cat.jpg" -> rejected with the SHOW error message, instruction not added');
+    it('admin types "Show /images/cat.jpg" -> rejected with the SHOW error message, instruction not added', async () => {
+      const addResponse = await typeInstruction('Show /images/cat.jpg');
+
+      expect(errorMessage(addResponse.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: story 0001 free-text path, unchanged for non-SHOW lines (test 7)
-    it.todo('admin types "sleep" -> accepted as free text: frame receives "1 sleep"');
+    it('admin types "sleep" -> accepted as free text: frame receives "1 sleep"', async () => {
+      await typeInstruction('sleep');
+
+      expect(await instructionsAfter(0)).toBe('1 sleep');
+    });
 
     // Relies on: SHOW rejection not adding (tests 1-6) + story 0001 sequence numbering
-    it.todo('latest seq is 3, admin types "SHOW cat.jpg" then "SHOW /images/cat.jpg" -> the latter gets seq 4 (rejection uses up no sequence number)');
+    it('latest seq is 3, admin types "SHOW cat.jpg" then "SHOW /images/cat.jpg" -> the latter gets seq 4 (rejection uses up no sequence number)', async () => {
+      for (let i = 1; i <= 3; i++) {
+        await typeInstruction(`instruction ${i}`);
+      }
+      const rejected = await typeInstruction('SHOW cat.jpg');
+      expect(errorMessage(rejected.text)).toBe(SHOW_ERROR_MESSAGE);
+      await typeInstruction('SHOW /images/cat.jpg');
+
+      expect(await instructionsAfter(3)).toBe('4 SHOW /images/cat.jpg');
+    });
 
     // Relies on: picking (test 9) + story 0001 sequence numbering
-    it.todo('latest seq is 6, admin picks cat.jpg -> frame asks after 6 and receives "7 SHOW /images/cat.jpg"');
+    it('latest seq is 6, admin picks cat.jpg -> frame asks after 6 and receives "7 SHOW /images/cat.jpg"', async () => {
+      for (let i = 1; i <= 6; i++) {
+        await typeInstruction(`instruction ${i}`);
+      }
+      await pickPhoto('cat.jpg');
+
+      expect(await instructionsAfter(6)).toBe('7 SHOW /images/cat.jpg');
+    });
 
     // Relies on: picker lists only .jpg (test 8, reusing the existing lowercase .jpg filter)
-    it.todo('image directory contains cat.png -> the photo picker does not offer cat.png');
-    it.todo('image directory contains bird.JPG -> the photo picker does not offer bird.JPG');
+    it('image directory contains cat.png -> the photo picker does not offer cat.png', async () => {
+      const options = pickerOptions((await request(testApp).get('/admin')).text);
+
+      expect(options).toContain('cat.jpg');
+      expect(options).not.toContain('cat.png');
+    });
+    it('image directory contains bird.JPG -> the photo picker does not offer bird.JPG', async () => {
+      const options = pickerOptions((await request(testApp).get('/admin')).text);
+
+      expect(options).toContain('cat.jpg');
+      expect(options).not.toContain('bird.JPG');
+    });
   });
 });
