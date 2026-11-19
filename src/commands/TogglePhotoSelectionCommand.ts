@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
+import { hasAllowedName } from '../photos/photoFilename';
 
 export class TogglePhotoSelectionCommand {
   constructor(
@@ -10,7 +11,7 @@ export class TogglePhotoSelectionCommand {
 
   execute(filename: string, selected: boolean): void {
     const filePath = path.join(this.imageDir, filename);
-    if (!fs.existsSync(filePath)) {
+    if (!hasAllowedName(filename) || !fs.existsSync(filePath)) {
       throw new Error('Photo not found');
     }
 

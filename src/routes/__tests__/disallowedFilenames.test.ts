@@ -134,7 +134,14 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 2: its selection cannot be changed
-  it.todo('folder holds "my cat.jpg" -> PATCH /api/photos/my%20cat.jpg with { "selected": true } -> 404 { "error": "Not found" }');
+  it('folder holds "my cat.jpg" -> PATCH /api/photos/my%20cat.jpg with { "selected": true } -> 404 { "error": "Not found" }', async () => {
+    await startWith(['my cat.jpg']);
+
+    const response = await request(server()).patch('/api/photos/my%20cat.jpg').send({ selected: true });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'Not found' });
+  });
 
   // Rule 3: warning when /admin reads the folder
   it.todo('folder holds cat.jpg and summer#1.jpg, /admin opened -> warning logged once, for summer#1.jpg');
