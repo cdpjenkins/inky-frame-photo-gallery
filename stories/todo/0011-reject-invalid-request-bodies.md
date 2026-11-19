@@ -27,7 +27,8 @@ The admin page is re-rendered with a 400 and the message `Instruction must be te
 invalid instructions, and nothing is added. An empty `text` still gets story 0001's `Instruction must not be empty`.
 
 ### Rule 5: `POST /admin/show-photo` rejects a filename that cannot be shown
-A missing filename, a filename containing whitespace or `/`, and a filename that is not a `.jpg` are all rejected.
+A missing filename, a filename sent more than once, a filename containing whitespace or `/`, and a filename that is
+not a `.jpg` are all rejected.
 The admin page is re-rendered with a 400 and the typed-SHOW message from story 0006, and nothing is added:
 
 > A SHOW instruction must be in the form "SHOW /images/&lt;filename&gt;.jpg", where the filename contains no whitespace or "/".
@@ -58,6 +59,7 @@ The admin page is re-rendered with a 400 and the typed-SHOW message from story 0
 - No `filename` -> 400, SHOW message
 - `filename=my cat.jpg` -> 400, SHOW message
 - `filename=cat.png` -> 400, SHOW message
+- `filename` sent twice (`filename=cat.jpg&filename=dog.jpg`) -> 400, SHOW message
 - `filename=cat.jpg` -> `SHOW /images/cat.jpg` is added (as today)
 
 ### For Rule 6: No sequence number used up
