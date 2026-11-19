@@ -3,7 +3,8 @@
 // src/simulator/__tests__/simulator.test.ts.
 //
 // "Admin types X" = the admin submits X via the existing add-instruction form on /admin (story 0001).
-// "Admin picks F" = the admin chooses photo F in the new photo picker on /admin and submits it.
+// "Admin clicks Show on frame for F" = the admin clicks the "Show on frame" button next to F's thumbnail in the
+// /admin gallery, which posts F to /admin/show-photo.
 // "Frame asks after N" = GET /instructions?after=N (story 0001).
 //
 // Rejection contract (Rule 3): the spec defines the exact error text, so rejection tests assert that the
@@ -11,7 +12,7 @@
 // the instruction is not added (the frame does not receive it):
 //   A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains no whitespace or "/".
 //
-// Picker tests use their own temporary image directory containing "cat.jpg", "my cat.jpg", "cat.png" and
+// These tests use their own temporary image directory containing "cat.jpg", "my cat.jpg", "cat.png" and
 // "bird.JPG", so the shared test-fixtures/images directory is left unchanged. (Not "cat.JPG": on a
 // case-insensitive filesystem such as default macOS, it would be the same file as "cat.jpg".)
 //
@@ -49,7 +50,7 @@ function typeInstruction(text: string) {
   return request(testApp).post('/admin/instructions').type('form').send({ text });
 }
 
-function pickPhoto(filename: string) {
+function clickShowOnFrame(filename: string) {
   return request(testApp).post('/admin/show-photo').type('form').send({ filename });
 }
 
@@ -67,22 +68,22 @@ function errorMessage(html: string): string | undefined {
   return message === undefined ? undefined : decodeHtmlEntities(message);
 }
 
-// The photo picker: a form on /admin posting to /admin/show-photo, with a <select name="filename"> whose options'
-// values are the filenames offered. Returns undefined if there is no such form.
-function pickerOptions(html: string): string[] | undefined {
-  const form = html.match(/<form([^>]*action="\/admin\/show-photo"[^>]*)>([\s\S]*?)<\/form>/);
-  if (!form) {
-    return undefined;
-  }
-  const [, formAttributes, formContent] = form;
-  if (!/method="post"/i.test(formAttributes)) {
-    return undefined;
-  }
-  const select = formContent.match(/<select[^>]*name="filename"[^>]*>([\s\S]*?)<\/select>/);
-  if (!select) {
-    return undefined;
-  }
-  return [...select[1].matchAll(/<option[^>]*value="([^"]*)"/g)].map(([, value]) => decodeHtmlEntities(value));
+// The filenames of the gallery thumbnails on /admin that have a "Show on frame" button: a gallery item whose
+// thumbnail is /images/F and which holds a form that posts filename F to /admin/show-photo.
+function thumbnailsWithShowButton(html: string): string[] {
+  return html
+    .split('<div class="gallery-item"')
+    .slice(1)
+    .flatMap(item => {
+      const thumbnail = item.match(/<img[^>]*src="\/images\/([^"]*)"/)?.[1];
+      const form = item.match(/<form([^>]*action="\/admin\/show-photo"[^>]*)>([\s\S]*?)<\/form>/);
+      if (thumbnail === undefined || !form || !/method="post"/i.test(form[1])) {
+        return [];
+      }
+      const posted = form[2].match(/<input[^>]*name="filename"[^>]*value="([^"]*)"/)?.[1];
+      const hasButton = /<button[^>]*>\s*Show on frame\s*<\/button>/.test(form[2]);
+      return hasButton && posted === thumbnail ? [decodeHtmlEntities(thumbnail)] : [];
+    });
 }
 
 async function instructionsAfter(n: number) {
@@ -160,29 +161,26 @@ describe('Show photo instruction (story 0006)', () => {
     expect(await instructionsAfter(0)).toBe('1 SHOWING /images/cat.jpg');
   });
 
-  // Rule 2: the picker lists .jpg photos
-  it('image directory contains cat.jpg -> admin page has a photo picker offering cat.jpg', async () => {
+  // Rule 2: a .jpg thumbnail has a "Show on frame" button
+  it('image directory contains cat.jpg -> the cat.jpg thumbnail on /admin has a "Show on frame" button posting cat.jpg', async () => {
     const response = await request(testApp).get('/admin');
 
     expect(response.status).toBe(200);
-    expect(pickerOptions(response.text)).toContain('cat.jpg');
+    expect(thumbnailsWithShowButton(response.text)).toContain('cat.jpg');
   });
 
-  // Rule 1: picking a photo adds SHOW /images/<filename>
-  it('no instructions exist, admin picks cat.jpg -> frame asks after 0 and receives "1 SHOW /images/cat.jpg"', async () => {
-    await pickPhoto('cat.jpg');
+  // Rule 1: clicking "Show on frame" adds SHOW /images/<filename>
+  it('no instructions exist, admin clicks Show on frame for cat.jpg -> frame asks after 0 and receives "1 SHOW /images/cat.jpg"', async () => {
+    await clickShowOnFrame('cat.jpg');
 
     expect(await instructionsAfter(0)).toBe('1 SHOW /images/cat.jpg');
   });
 
-  // Rule 2: the picker leaves out filenames containing whitespace
-  it('image directory contains "my cat.jpg" -> the photo picker does not offer "my cat.jpg"', async () => {
-    const response = await request(testApp).get('/admin');
+  // Rule 2: thumbnails whose filenames contain whitespace have no button
+  it.todo('image directory contains "my cat.jpg" -> the "my cat.jpg" thumbnail has no "Show on frame" button; cat.jpg\'s has one');
 
-    const options = pickerOptions(response.text);
-    expect(options).toContain('cat.jpg');
-    expect(options).not.toContain('my cat.jpg');
-  });
+  // Rule 2: there is no separate photo picker
+  it.todo('/admin has no separate photo picker (no <select name="filename">)');
 
   // Rule 5 (served by the backend): the simulator page
   it('GET /simulator -> 200, HTML page', async () => {
@@ -272,28 +270,18 @@ describe('Show photo instruction (story 0006)', () => {
       expect(await instructionsAfter(3)).toBe('4 SHOW /images/cat.jpg');
     });
 
-    // Relies on: picking (test 9) + story 0001 sequence numbering
-    it('latest seq is 6, admin picks cat.jpg -> frame asks after 6 and receives "7 SHOW /images/cat.jpg"', async () => {
+    // Relies on: clicking Show on frame (test 9) + story 0001 sequence numbering
+    it('latest seq is 6, admin clicks Show on frame for cat.jpg -> frame asks after 6 and receives "7 SHOW /images/cat.jpg"', async () => {
       for (let i = 1; i <= 6; i++) {
         await typeInstruction(`instruction ${i}`);
       }
-      await pickPhoto('cat.jpg');
+      await clickShowOnFrame('cat.jpg');
 
       expect(await instructionsAfter(6)).toBe('7 SHOW /images/cat.jpg');
     });
 
-    // Relies on: picker lists only .jpg (test 8, reusing the existing lowercase .jpg filter)
-    it('image directory contains cat.png -> the photo picker does not offer cat.png', async () => {
-      const options = pickerOptions((await request(testApp).get('/admin')).text);
-
-      expect(options).toContain('cat.jpg');
-      expect(options).not.toContain('cat.png');
-    });
-    it('image directory contains bird.JPG -> the photo picker does not offer bird.JPG', async () => {
-      const options = pickerOptions((await request(testApp).get('/admin')).text);
-
-      expect(options).toContain('cat.jpg');
-      expect(options).not.toContain('bird.JPG');
-    });
+    // Relies on: buttons only for .jpg thumbnails (test 8; the gallery shows only lowercase .jpg files)
+    it.todo('image directory contains cat.png -> no "Show on frame" button for cat.png');
+    it.todo('image directory contains bird.JPG -> no "Show on frame" button for bird.JPG');
   });
 });

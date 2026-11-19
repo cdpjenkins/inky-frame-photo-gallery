@@ -36,6 +36,9 @@ block content
         label.checkbox-label
           input(type='checkbox' data-filename=image.filename checked=image.selected)
           span Select
+        form(method='post' action='/admin/show-photo')
+          input(type='hidden' name='filename' value=image.filename)
+          button(type='submit') Show on frame
 
   script.
     document.addEventListener('DOMContentLoaded', () => {

@@ -3,7 +3,8 @@
 ## Story (yellow)
 
 As an admin,
-I want to add a SHOW instruction for a specific photo, either by picking it in the admin GUI or by typing it,
+I want to add a SHOW instruction for a specific photo, either by clicking a button next to its thumbnail in the
+admin gallery or by typing it,
 so that I can remotely make a photo frame download and display that photo.
 
 To test this without a real frame, the backend serves a Photo Frame Simulator at `/simulator` that fetches
@@ -13,11 +14,13 @@ Note: these are "instructions" (see story 0001), not "commands". Instruction nam
 
 ## Rules (blue)
 
-### Rule 1: Picking a photo in the admin GUI adds a SHOW instruction with the next sequence number
-The instruction text is `SHOW /images/<filename>`. The backend does not check that the photo exists.
+### Rule 1: Clicking "Show on frame" next to a photo's thumbnail adds a SHOW instruction with the next sequence number
+The button sits beside the thumbnail's Select checkbox in the admin gallery. The instruction text is
+`SHOW /images/<filename>`. The backend does not check that the photo exists.
 
-### Rule 2: The picker lists only `.jpg` files whose names contain no whitespace or `/`
-Any such `.jpg` in the image directory is allowed, whether or not it is marked as selected.
+### Rule 2: Only thumbnails of `.jpg` files whose names contain no whitespace or `/` have a "Show on frame" button
+Any such `.jpg` in the image directory has one, whether or not it is marked as selected. There is no separate photo
+picker: the thumbnail's button is the only way to pick a photo.
 
 ### Rule 3: A typed SHOW instruction is validated
 After trimming (as in story 0001), a line is an attempted SHOW if its first word is `show` in any case. It is
@@ -51,14 +54,15 @@ The message stays on the page until a later fetch of `/instructions` succeeds, w
 
 ## Examples (green)
 
-### For Rule 1: Picking a photo adds a SHOW instruction
-- Latest seq is 6; admin picks `cat.jpg` -> `7 SHOW /images/cat.jpg` is added
+### For Rule 1: Clicking "Show on frame" adds a SHOW instruction
+- Latest seq is 6; admin clicks "Show on frame" for `cat.jpg` -> `7 SHOW /images/cat.jpg` is added
 
-### For Rule 2: Picker contents
-- `cat.jpg` -> listed
-- `my cat.jpg` -> not listed
-- `cat.png` -> not listed
-- `cat.JPG` -> not listed
+### For Rule 2: Which thumbnails have a "Show on frame" button
+- `cat.jpg` -> has a button
+- `my cat.jpg` -> no button
+- `cat.png` -> no button
+- `cat.JPG` -> no button
+- The admin page has no separate photo picker
 
 ### For Rule 3: Typed SHOW validation
 - `SHOW /images/cat.jpg` -> accepted

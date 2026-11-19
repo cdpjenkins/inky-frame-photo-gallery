@@ -6,4 +6,4 @@ Sliced out of [0006-show-photo-instruction](../doing/0006-show-photo-instruction
 
 ## Context
 
-In story 0006, the backend does not check that the photo named in a SHOW instruction exists in the image directory, whether it was picked in the admin GUI or typed. This was left out to keep story 0006 simple.
+In story 0006, the backend does not check that the photo named in a SHOW instruction exists in the image directory, whether it was picked with a thumbnail's "Show on frame" button or typed. This was left out to keep story 0006 simple.
