@@ -1,98 +1,75 @@
-# Example Mapping: Handle filenames that are not safe in URLs
+# Example Mapping: Disallow filenames that are not safe in URLs
 
 ## Story (yellow)
 
 As an admin,
-I want photos whose filenames contain characters that mean something in a URL (such as `#`, `?` and `%`) to be
-handled consistently,
-so that the frame and the admin page never request the wrong file.
+I want photos whose filenames contain characters that would need URL encoding to be disallowed,
+so that every photo URL the backend and the frame use works without encoding.
 
 Raised by a code review of the backend. None of the current photos have such names; this guards against future
-files. The real frame uses the paths it receives unchanged, so encoded paths work for it.
+files. An earlier version of this map encoded such filenames instead; that approach was dropped.
 
-This story changes behaviour agreed in [story 0006](../done/0006-show-photo-instruction.md) (Rules 2 and 3) and
-[story 0011](../done/0011-reject-invalid-request-bodies.md) (Rule 5); their tests are updated as part of this story.
+This story changes behaviour agreed in [story 0006](../done/0006-show-photo-instruction.md) (Rules 2 and 3: which
+photos can be shown, and the SHOW error message). [Story 0011](../done/0011-reject-invalid-request-bodies.md)'s
+show-photo rejections use the new message.
 
 ## Rules (blue)
 
-### Rule 1: A filename is URL-encoded wherever it is put into a URL
-Standard URL encoding, as JavaScript's `encodeURIComponent`: letters, digits and `-_.!~*'()` stay as they are;
-everything else is percent-encoded. Non-English letters are allowed and are encoded as UTF-8.
+### Rule 1: A photo's filename may contain only letters, digits, `-`, `.`, `_` and `~`
+Letters are `A-Z` and `a-z` only, and digits `0-9` (RFC 3986's "unreserved" characters). A photo's filename must
+also end in lowercase `.jpg`, as before. Replaces story 0006 Rule 2.
 
-### Rule 2: Filenames shown as text stay unencoded
-Only URLs are encoded.
+### Rule 2: A photo with a disallowed filename is left out everywhere
+It has no gallery thumbnail, no Select checkbox and no "Show on frame" button, never appears in `/list` (even if it
+was selected earlier), and is not served.
 
-### Rule 3: Every URL the admin page and `/list` produce uses the encoded filename
-Thumbnail links and images, the Select checkbox's PATCH request, and the lines of `/list`.
+### Rule 3: Each time the image folder is read, a warning is logged for each disallowed photo
+The folder is read for `/admin` and `/list`. The warning is logged with `console.warn` as
+`Skipping photo with disallowed name: <filename>`. If this makes the logs busy, the admin must remove the file.
+Files that are not photos (not ending in lowercase `.jpg`) are ignored silently, as before. Requests to `/images/`
+and `/api/photos/` do not read the folder, so they log nothing.
 
-### Rule 4: Any `.jpg` whose name contains no `/` can be shown, including names with whitespace
-Replaces story 0006 Rule 2 and part of story 0011 Rule 5. The "Show on frame" button posts the plain filename; the
-backend adds `SHOW /images/<encoded filename>`. A missing filename, a filename sent more than once, a filename that is
-not a `.jpg`, and a filename containing `/` are still rejected with the SHOW message (as in story 0011).
+### Rule 4: When photos were skipped, the admin page shows a notice
+The notice is: `Some photos were skipped because their names contain characters that are not allowed.`
+It does not list the skipped names.
 
-### Rule 5: A typed SHOW's filename must be well-formed URL encoding
-Replaces story 0006 Rule 3's filename check, together with Rules 6 and 7. The text after `SHOW /images/` may contain
-only characters that standard encoding leaves as they are, and `%` only as the start of a `%XX` escape (two hex
-digits). A SHOW that passes Rules 5-7 is stored as typed. A SHOW that fails any of them shows this message on the
-admin page (replacing story 0006's message), is not added, and uses up no sequence number:
+### Rule 5: A typed SHOW must name a filename made only of allowed characters
+Replaces story 0006 Rule 3's filename check. A rejected SHOW shows this message on the admin page (replacing story
+0006's message everywhere, including show-photo rejections), is not added, and uses up no sequence number:
 
-> A SHOW instruction must be in the form "SHOW /images/&lt;filename&gt;.jpg", where the filename is URL-encoded and contains no "/".
-
-### Rule 6: A typed SHOW's filename must be in the standard encoded form
-The text after `SHOW /images/` must be exactly what standard encoding produces for the decoded filename, so each
-photo has one spelling: escapes only where encoding needs them, with uppercase hex digits.
-
-### Rule 7: A typed SHOW's decoded filename must end in `.jpg` and contain no `/`
-
-### Rule 8: A photo request is decoded to a filename, and a filename never contains `/`
-`GET /images/...` accepts any valid encoding of a filename (only typed SHOW instructions require the standard form).
-A request that decodes to a name containing `/` never serves a file outside the image directory.
+> A SHOW instruction must be in the form "SHOW /images/&lt;filename&gt;.jpg", where the filename contains only letters, digits, "-", ".", "_" and "~".
 
 ## Examples (green)
 
-### For Rule 1: Standard URL encoding
-- `summer#1.jpg` -> `summer%231.jpg`
-- `50%.jpg` -> `50%25.jpg`
-- `what?.jpg` -> `what%3F.jpg`
-- `café.jpg` -> `caf%C3%A9.jpg`
+### For Rule 1: Allowed characters
+- `cat.jpg`, `Summer_2024-07.jpg`, `a~b.jpg`, `.jpg` -> allowed
+- `my cat.jpg` (space), `summer#1.jpg` (`#`), `what?.jpg` (`?`), `50%.jpg` (`%`), `café.jpg` (`é`), `it's.jpg`
+  (`'`) -> disallowed
 
-### For Rule 2: Text stays unencoded
-- The `summer#1.jpg` thumbnail's label and alt text are `summer#1.jpg`
+### For Rule 2: Left out everywhere
+- `summer#1.jpg` in the folder -> no thumbnail, no Select checkbox, no "Show on frame" button on `/admin`
+- `summer#1.jpg` selected earlier -> `/list` does not include it
+- `GET /images/summer%231.jpg` -> 404
+- `PATCH /api/photos/my%20cat.jpg` -> 404 `{ "error": "Not found" }`
 
-### For Rule 3: URLs use the encoded filename
-- The `summer#1.jpg` thumbnail's link and image use `/images/summer%231.jpg`
-- The `summer#1.jpg` Select checkbox sends `PATCH /api/photos/summer%231.jpg`; the selection is stored under
-  `summer#1.jpg`
-- `summer#1.jpg` selected -> `/list` includes `/images/summer%231.jpg`
+### For Rule 3: Warnings
+- Folder holds `cat.jpg` and `summer#1.jpg`; `/admin` is opened -> one warning:
+  `Skipping photo with disallowed name: summer#1.jpg`; opened again -> logged again
+- Folder holds `cat.jpg` and `summer#1.jpg`; `/list` is requested -> the same warning
+- Folder holds `cat.png` and `bird.JPG` -> no warning
 
-### For Rule 4: Showable photos
-- `my cat.jpg` has a "Show on frame" button; clicking it adds `SHOW /images/my%20cat.jpg`
-- "Show on frame" for `summer#1.jpg` adds `SHOW /images/summer%231.jpg`
-- show-photo with `filename=my cat.jpg` -> accepted (story 0011 rejected it)
-- show-photo with a filename containing `/` -> 400, SHOW message
-- show-photo with no filename, a filename sent twice, or `cat.png` -> 400, SHOW message (unchanged from story 0011)
+### For Rule 4: Admin notice
+- Folder holds `my cat.jpg` and `summer#1.jpg` -> the notice is shown once
+- Folder holds only allowed photos -> no notice
+- Folder holds allowed photos and `cat.png` -> no notice
 
-### For Rule 5: Well-formed encoding
-- `SHOW /images/my%20cat.jpg` -> accepted
-- `SHOW /images/summer%231.jpg` -> accepted
-- `SHOW /images/my cat.jpg` -> rejected (raw space)
-- `SHOW /images/summer#1.jpg` -> rejected (raw `#`)
-- `SHOW /images/50%.jpg` -> rejected (`%` not followed by two hex digits)
-
-### For Rule 6: Standard form only
-- `SHOW /images/what%3F.jpg` -> accepted
-- `SHOW /images/what%3f.jpg` -> rejected (lowercase hex; the standard form is `what%3F.jpg`)
-- `SHOW /images/c%61t.jpg` -> rejected (needless escape; the standard form is `cat.jpg`)
-
-### For Rule 7: Decoded filename
-- `SHOW /images/.jpg` -> accepted (empty name before `.jpg`)
-- `SHOW /images/..%2Fsecret.jpg` -> rejected (decodes to a name containing `/`)
-- `SHOW /images/cat.png` -> rejected (not a `.jpg`)
-
-### For Rule 8: Serving photos
-- `GET /images/summer%231.jpg` -> serves `summer#1.jpg`
-- `GET /images/c%61t.jpg` -> serves `cat.jpg` (any valid encoding is accepted when serving)
-- `GET /images/..%2Fsecret.jpg` -> 404, no file outside the image directory is served (already true today)
+### For Rule 5: Typed SHOW
+- `SHOW /images/Summer_2024-07.jpg` -> accepted
+- `SHOW /images/.jpg` -> accepted
+- `SHOW /images/summer#1.jpg` -> rejected with the new message
+- `SHOW /images/my%20cat.jpg` -> rejected with the new message
+- `SHOW /images/café.jpg` -> rejected with the new message
+- show-photo with `filename=summer#1.jpg` (a crafted request; the page never offers it) -> 400 with the new message
 
 ## Questions (red)
 
