@@ -177,7 +177,13 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 2: thumbnails whose filenames contain whitespace have no button
-  it.todo('image directory contains "my cat.jpg" -> the "my cat.jpg" thumbnail has no "Show on frame" button; cat.jpg\'s has one');
+  it('image directory contains "my cat.jpg" -> the "my cat.jpg" thumbnail has no "Show on frame" button; cat.jpg\'s has one', async () => {
+    const response = await request(testApp).get('/admin');
+
+    const thumbnails = thumbnailsWithShowButton(response.text);
+    expect(thumbnails).toContain('cat.jpg');
+    expect(thumbnails).not.toContain('my cat.jpg');
+  });
 
   // Rule 2: there is no separate photo picker
   it.todo('/admin has no separate photo picker (no <select name="filename">)');

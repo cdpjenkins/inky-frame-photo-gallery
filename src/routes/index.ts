@@ -42,6 +42,7 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
     const imagesWithSelection = jpgFiles.map(file => ({
       filename: file,
       selected: photoMetadataRepository.getSelection(file),
+      showable: isShowableFilename(file),
     }));
     const instructionRepository: InstructionRepository = req.app.get('instructionRepository');
     if (error) {
