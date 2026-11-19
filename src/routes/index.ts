@@ -1,12 +1,12 @@
 import express, { Request, Response, NextFunction } from 'express';
-import fs from 'fs/promises';
 import path from 'path';
 import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCommand';
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
 import { isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
-import { isPhotoFilename, isSkippedPhotoFilename } from '../photos/photoFilename';
+import { isPhotoFilename } from '../photos/photoFilename';
+import { readPhotos } from '../photos/photoFolder';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -18,8 +18,7 @@ router.get('/list', async function(req, res, next) {
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
 
-    const files = await fs.readdir(imageDir);
-    const photos = files.filter(isPhotoFilename);
+    const photos = await readPhotos(imageDir);
     const selectedFiles = photos.filter(file => photoMetadataRepository.getSelection(file));
     const selectedFilesWithPrefix = selectedFiles.map(file => `/images/${file}`);
 
@@ -38,11 +37,7 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
   try {
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
-    const files = await fs.readdir(imageDir);
-    for (const file of files.filter(isSkippedPhotoFilename)) {
-      console.warn(`Skipping photo with disallowed name: ${file}`);
-    }
-    const photos = files.filter(isPhotoFilename);
+    const photos = await readPhotos(imageDir);
     const galleryImages = photos.map(file => ({
       filename: file,
       selected: photoMetadataRepository.getSelection(file),

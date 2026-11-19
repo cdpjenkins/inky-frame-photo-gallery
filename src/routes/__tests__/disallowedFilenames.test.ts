@@ -161,7 +161,13 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 3: warning when /list reads the folder
-  it.todo('folder holds cat.jpg and summer#1.jpg, /list requested -> warning logged once, for summer#1.jpg');
+  it('folder holds cat.jpg and summer#1.jpg, /list requested -> warning logged once, for summer#1.jpg', async () => {
+    await startWith(['cat.jpg', 'summer#1.jpg']);
+
+    await request(server()).get('/list');
+
+    expect(warningsLogged()).toEqual([['Skipping photo with disallowed name: summer#1.jpg']]);
+  });
 
   // Rule 4: notice when photos were skipped
   it.todo('folder holds cat.jpg, "my cat.jpg" and summer#1.jpg -> /admin shows the notice exactly once, without the skipped names');
