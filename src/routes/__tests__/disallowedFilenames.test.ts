@@ -1,5 +1,5 @@
 // Test list for story 0012: Disallow filenames that are not safe in URLs
-// (stories/doing/0012-filenames-that-break-urls.md).
+// (stories/done/0012-filenames-that-break-urls.md).
 //
 // "Allowed" = a filename made only of letters A-Z and a-z, digits 0-9, "-", ".", "_" and "~" (Rule 1).
 // "Folder holds X" = each test starts the app on its own temporary image folder holding exactly the files X.
