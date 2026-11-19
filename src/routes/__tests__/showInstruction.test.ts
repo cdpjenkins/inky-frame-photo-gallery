@@ -292,7 +292,17 @@ describe('Show photo instruction (story 0006)', () => {
     });
 
     // Relies on: buttons only for .jpg thumbnails (test 8; the gallery shows only lowercase .jpg files)
-    it.todo('image directory contains cat.png -> no "Show on frame" button for cat.png');
-    it.todo('image directory contains bird.JPG -> no "Show on frame" button for bird.JPG');
+    it('image directory contains cat.png -> no "Show on frame" button for cat.png', async () => {
+      const thumbnails = thumbnailsWithShowButton((await request(testApp).get('/admin')).text);
+
+      expect(thumbnails).toContain('cat.jpg');
+      expect(thumbnails).not.toContain('cat.png');
+    });
+    it('image directory contains bird.JPG -> no "Show on frame" button for bird.JPG', async () => {
+      const thumbnails = thumbnailsWithShowButton((await request(testApp).get('/admin')).text);
+
+      expect(thumbnails).toContain('cat.jpg');
+      expect(thumbnails).not.toContain('bird.JPG');
+    });
   });
 });
