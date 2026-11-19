@@ -98,7 +98,7 @@ No open questions - all ambiguities were resolved.
 
 ## New Stories (sliced out)
 
-- [0002](../todo/0002-limit-instructions-per-response.md): Limit the number of instructions returned in one response (the frame has limited memory)
+- [0002](../icebox/0002-limit-instructions-per-response.md): Limit the number of instructions returned in one response (the frame has limited memory)
 - [0003](../todo/0003-per-frame-instructions.md): Send different instructions to different frames
-- [0004](../todo/0004-edit-delete-instructions.md): Admin edits or deletes instructions
+- [0004](../icebox/0004-edit-delete-instructions.md): Admin edits or deletes instructions
 - [0005](../todo/0005-clean-up-old-instructions.md): Clean up old instructions so the list doesn't grow forever

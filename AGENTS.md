@@ -2,17 +2,19 @@
 
 ## Stories
 
-Stories live in `stories/`, in one of three folders according to their state:
+Stories live in `stories/`, in one of five folders according to their state:
 
-- `stories/todo/` — not yet started
+- `stories/icebox/` — not a priority right now
+- `stories/todo/` — not yet started; examples not yet created
+- `stories/ready/` — examples have been created (e.g. by Example Mapping), and the story is ready to go
 - `stories/doing/` — in progress
 - `stories/done/` — complete
 
 ### Naming
 
 - Each story file is named `NNNN-kebab-case-title.md`, e.g. `0001-instructions.md`.
-- `NNNN` is a zero-padded, four-digit number. A new story takes the next unused number across **all three**
-  folders (`todo`, `doing` and `done`).
+- `NNNN` is a zero-padded, four-digit number. A new story takes the next unused number across **all five**
+  folders (`icebox`, `todo`, `ready`, `doing` and `done`).
 - The number is a permanent identifier that reflects creation order only. It does **not** indicate priority.
 - A story keeps its number for its whole life. When it moves between folders, it is moved, never renumbered.
 - Refer to stories by number (e.g. "story 0001") in commit messages, branch names and discussion.
