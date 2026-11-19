@@ -11,6 +11,7 @@ block content
   form(method='post' action='/admin/instructions')
     input(type='text' name='text')
     button(type='submit') Add
+  p.notice Some photos were skipped because their names contain characters that are not allowed.
 
   - var selectedImages = images.filter(img => img.selected)
   .selected-photos-section(style=selectedImages.length === 0 ? 'display: none;' : '')

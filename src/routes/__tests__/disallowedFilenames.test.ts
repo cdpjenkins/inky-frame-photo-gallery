@@ -80,6 +80,10 @@ function galleryFilenames(html: string): string[] {
   return [...new Set(referenced)];
 }
 
+function occurrences(text: string, of: string): number {
+  return text.split(of).length - 1;
+}
+
 async function adminPage(): Promise<string> {
   return (await request(server()).get('/admin')).text;
 }
@@ -170,7 +174,15 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 4: notice when photos were skipped
-  it.todo('folder holds cat.jpg, "my cat.jpg" and summer#1.jpg -> /admin shows the notice exactly once, without the skipped names');
+  it('folder holds cat.jpg, "my cat.jpg" and summer#1.jpg -> /admin shows the notice exactly once, without the skipped names', async () => {
+    await startWith(['cat.jpg', 'my cat.jpg', 'summer#1.jpg']);
+
+    const page = decodeHtmlEntities(await adminPage());
+
+    expect(occurrences(page, SKIPPED_PHOTOS_NOTICE)).toBe(1);
+    expect(page).not.toContain('my cat.jpg');
+    expect(page).not.toContain('summer#1.jpg');
+  });
 
   // Rule 4: no notice when nothing was skipped
   it.todo('folder holds only cat.jpg -> /admin does not show the notice');
