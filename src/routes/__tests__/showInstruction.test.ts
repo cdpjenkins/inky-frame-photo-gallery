@@ -186,7 +186,12 @@ describe('Show photo instruction (story 0006)', () => {
   });
 
   // Rule 2: there is no separate photo picker
-  it.todo('/admin has no separate photo picker (no <select name="filename">)');
+  it('/admin has no separate photo picker (no <select name="filename">); the cat.jpg thumbnail still has its button', async () => {
+    const response = await request(testApp).get('/admin');
+
+    expect(response.text).not.toMatch(/<select[^>]*name="filename"/);
+    expect(thumbnailsWithShowButton(response.text)).toContain('cat.jpg');
+  });
 
   // Rule 5 (served by the backend): the simulator page
   it('GET /simulator -> 200, HTML page', async () => {

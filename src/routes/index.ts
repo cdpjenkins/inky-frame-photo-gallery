@@ -39,7 +39,7 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
     const files = await fs.readdir(imageDir);
     const jpgFiles = files.filter(file => file.endsWith('.jpg'));
-    const imagesWithSelection = jpgFiles.map(file => ({
+    const galleryImages = jpgFiles.map(file => ({
       filename: file,
       selected: photoMetadataRepository.getSelection(file),
       showable: isShowableFilename(file),
@@ -48,8 +48,7 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
     if (error) {
       res.status(400);
     }
-    const pickablePhotos = jpgFiles.filter(isShowableFilename);
-    res.render('admin', { title: 'Admin', images: imagesWithSelection, pickablePhotos, instructions: instructionRepository.getAll(), error });
+    res.render('admin', { title: 'Admin', images: galleryImages, instructions: instructionRepository.getAll(), error });
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       res.status(404).json({ error: 'Not found' });

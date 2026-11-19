@@ -11,11 +11,6 @@ block content
   form(method='post' action='/admin/instructions')
     input(type='text' name='text')
     button(type='submit') Add
-  form(method='post' action='/admin/show-photo')
-    select(name='filename')
-      each filename in pickablePhotos
-        option(value=filename)= filename
-    button(type='submit') Show on frame
 
   - var selectedImages = images.filter(img => img.selected)
   .selected-photos-section(style=selectedImages.length === 0 ? 'display: none;' : '')
