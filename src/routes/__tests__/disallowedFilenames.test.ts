@@ -116,7 +116,13 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 2: left out of /list
-  it.todo('folder holds cat.jpg and summer#1.jpg, both selected earlier -> /list is "/images/cat.jpg" only');
+  it('folder holds cat.jpg and summer#1.jpg, both selected earlier -> /list is "/images/cat.jpg" only', async () => {
+    await startWith(['cat.jpg', 'summer#1.jpg'], ['cat.jpg', 'summer#1.jpg']);
+
+    const response = await request(server()).get('/list');
+
+    expect(response.text).toBe('/images/cat.jpg');
+  });
 
   // Rule 2: not served
   it.todo('folder holds summer#1.jpg -> GET /images/summer%231.jpg -> 404');

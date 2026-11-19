@@ -6,7 +6,7 @@ import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
 import { isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
-import { hasAllowedName } from '../photos/photoFilename';
+import { isPhotoFilename } from '../photos/photoFilename';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -19,8 +19,8 @@ router.get('/list', async function(req, res, next) {
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
 
     const files = await fs.readdir(imageDir);
-    const jpgFiles = files.filter(file => file.endsWith('.jpg'));
-    const selectedFiles = jpgFiles.filter(file => photoMetadataRepository.getSelection(file));
+    const photos = files.filter(isPhotoFilename);
+    const selectedFiles = photos.filter(file => photoMetadataRepository.getSelection(file));
     const selectedFilesWithPrefix = selectedFiles.map(file => `/images/${file}`);
 
     res.type('text/plain');
@@ -39,8 +39,8 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
     const files = await fs.readdir(imageDir);
-    const jpgFiles = files.filter(file => file.endsWith('.jpg') && hasAllowedName(file));
-    const galleryImages = jpgFiles.map(file => ({
+    const photos = files.filter(isPhotoFilename);
+    const galleryImages = photos.map(file => ({
       filename: file,
       selected: photoMetadataRepository.getSelection(file),
       showable: isShowableFilename(file),
