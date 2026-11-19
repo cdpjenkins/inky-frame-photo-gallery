@@ -6,7 +6,7 @@ import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
 import { isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
-import { isPhotoFilename } from '../photos/photoFilename';
+import { isPhotoFilename, isSkippedPhotoFilename } from '../photos/photoFilename';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -39,6 +39,9 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
     const files = await fs.readdir(imageDir);
+    for (const file of files.filter(isSkippedPhotoFilename)) {
+      console.warn(`Skipping photo with disallowed name: ${file}`);
+    }
     const photos = files.filter(isPhotoFilename);
     const galleryImages = photos.map(file => ({
       filename: file,

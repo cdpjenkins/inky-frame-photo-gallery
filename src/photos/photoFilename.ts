@@ -6,7 +6,18 @@ export function hasAllowedName(filename: string): boolean {
   return /^[A-Za-z0-9\-._~]*$/.test(filename);
 }
 
-// A file in the image folder is a photo if its filename ends in ".jpg" (story 0006) and is allowed (Rule 1).
+// Only .jpg files are candidates for photos (story 0006).
+function isJpgFilename(filename: string): boolean {
+  return filename.endsWith('.jpg');
+}
+
+// A file in the image folder is a photo if it is a .jpg with an allowed name (Rule 1).
 export function isPhotoFilename(filename: string): boolean {
-  return filename.endsWith('.jpg') && hasAllowedName(filename);
+  return isJpgFilename(filename) && hasAllowedName(filename);
+}
+
+// A .jpg whose name is not allowed is skipped: left out everywhere, with a warning (Rules 2 and 3). Other files are
+// not photos at all and are ignored silently.
+export function isSkippedPhotoFilename(filename: string): boolean {
+  return isJpgFilename(filename) && !hasAllowedName(filename);
 }

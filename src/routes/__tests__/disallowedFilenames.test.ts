@@ -84,9 +84,12 @@ async function adminPage(): Promise<string> {
   return (await request(server()).get('/admin')).text;
 }
 
+let warn: jest.SpyInstance;
+
 beforeEach(() => {
   testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'disallowed-filenames-test-'));
   testApp = undefined;
+  warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 afterEach(async () => {
@@ -95,7 +98,12 @@ afterEach(async () => {
     await new Promise<void>(resolve => server.close(() => resolve()));
   }
   fs.rmSync(testDir, { recursive: true, force: true });
+  warn.mockRestore();
 });
+
+function warningsLogged(): unknown[][] {
+  return warn.mock.calls;
+}
 
 describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   // Rule 2: a disallowed photo is left out of the gallery
@@ -144,7 +152,13 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 3: warning when /admin reads the folder
-  it.todo('folder holds cat.jpg and summer#1.jpg, /admin opened -> warning logged once, for summer#1.jpg');
+  it('folder holds cat.jpg and summer#1.jpg, /admin opened -> warning logged once, for summer#1.jpg', async () => {
+    await startWith(['cat.jpg', 'summer#1.jpg']);
+
+    await adminPage();
+
+    expect(warningsLogged()).toEqual([['Skipping photo with disallowed name: summer#1.jpg']]);
+  });
 
   // Rule 3: warning when /list reads the folder
   it.todo('folder holds cat.jpg and summer#1.jpg, /list requested -> warning logged once, for summer#1.jpg');
