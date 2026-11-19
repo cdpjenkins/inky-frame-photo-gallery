@@ -6,6 +6,11 @@ const SHOW_PREFIX = 'SHOW /images/';
 export const MALFORMED_SHOW_MESSAGE =
   'A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains no whitespace or "/".';
 
+// Story 0012, Rule 1: a photo's filename may contain only characters that never need URL encoding.
+export function hasAllowedName(filename: string): boolean {
+  return !filename.includes('#');
+}
+
 // A photo can be shown if its filename ends in ".jpg" and contains no whitespace or "/".
 export function isShowableFilename(filename: string): boolean {
   return filename.endsWith('.jpg') && !/[\s/]/.test(filename);

@@ -23,14 +23,90 @@
 // - Typed "SHOW /images/my cat.jpg", "SHOW /images/cat.png" and "SHOW /images/cat.JPG" are rejected
 //   (showInstruction.test.ts; their expected message becomes the SHOW message).
 
+import request from 'supertest';
+import path from 'path';
+import fs from 'fs';
+import http from 'http';
+import os from 'os';
+import { createApp } from '../../app';
+
 const SHOW_ERROR_MESSAGE =
   'A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains only letters, digits, "-", ".", "_" and "~".';
 
 const SKIPPED_PHOTOS_NOTICE = 'Some photos were skipped because their names contain characters that are not allowed.';
 
+let testDir: string;
+let testApp: http.Server | undefined;
+
+// Starts the app on a fresh image folder holding exactly `filenames` (each file contains its own name), with
+// `selected` photos marked as selected in its metadata file. Started on 127.0.0.1; see instructions.test.ts.
+async function startWith(filenames: string[], selected: string[] = []) {
+  const imageDir = path.join(testDir, 'images');
+  fs.mkdirSync(imageDir);
+  for (const filename of filenames) {
+    fs.writeFileSync(path.join(imageDir, filename), filename);
+  }
+  const metadataPath = path.join(testDir, 'photo-metadata.json');
+  fs.writeFileSync(metadataPath, JSON.stringify(Object.fromEntries(selected.map(f => [f, { selected: true }]))));
+  const app = createApp({ imageDir, metadataPath, instructionsPath: path.join(testDir, 'instructions.json') });
+  testApp = await new Promise<http.Server>(resolve => {
+    const server = app.listen(0, '127.0.0.1', () => resolve(server));
+  });
+}
+
+function server(): http.Server {
+  if (!testApp) {
+    throw new Error('startWith() must be called before making requests');
+  }
+  return testApp;
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+// The filenames the /admin gallery refers to, through any gallery item's thumbnail (img alt), Select checkbox
+// (data-filename) or "Show on frame" form (hidden filename value).
+function galleryFilenames(html: string): string[] {
+  const items = html.split('<div class="gallery-item"').slice(1);
+  const referenced = items.flatMap(item =>
+    [...item.matchAll(/(?:alt|data-filename|value)="([^"]*)"/g)].map(([, value]) => decodeHtmlEntities(value)),
+  );
+  return [...new Set(referenced)];
+}
+
+async function adminPage(): Promise<string> {
+  return (await request(server()).get('/admin')).text;
+}
+
+beforeEach(() => {
+  testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'disallowed-filenames-test-'));
+  testApp = undefined;
+});
+
+afterEach(async () => {
+  if (testApp) {
+    const server = testApp;
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
+  fs.rmSync(testDir, { recursive: true, force: true });
+});
+
 describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   // Rule 2: a disallowed photo is left out of the gallery
-  it.todo('folder holds cat.jpg and summer#1.jpg -> /admin shows cat.jpg; summer#1.jpg is left out of the gallery');
+  it('folder holds cat.jpg and summer#1.jpg -> /admin shows cat.jpg; summer#1.jpg is left out of the gallery', async () => {
+    await startWith(['cat.jpg', 'summer#1.jpg']);
+
+    const gallery = galleryFilenames(await adminPage());
+
+    expect(gallery).toContain('cat.jpg');
+    expect(gallery).not.toContain('summer#1.jpg');
+  });
 
   // Rule 1: every character outside the allowed set disallows a photo
   it.todo('folder holds cat.jpg, "my cat.jpg", what?.jpg, 50%.jpg, café.jpg and it\'s.jpg -> /admin shows cat.jpg; all the others are left out of the gallery');

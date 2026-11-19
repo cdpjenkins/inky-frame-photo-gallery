@@ -5,7 +5,7 @@ import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCom
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
-import { isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
+import { hasAllowedName, isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -38,7 +38,7 @@ async function renderAdminPage(req: Request, res: Response, next: NextFunction, 
     const imageDir = req.app.get('imageDir');
     const photoMetadataRepository: PhotoMetadataRepository = req.app.get('photoMetadataRepository');
     const files = await fs.readdir(imageDir);
-    const jpgFiles = files.filter(file => file.endsWith('.jpg'));
+    const jpgFiles = files.filter(file => file.endsWith('.jpg') && hasAllowedName(file));
     const galleryImages = jpgFiles.map(file => ({
       filename: file,
       selected: photoMetadataRepository.getSelection(file),
