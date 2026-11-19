@@ -2,3 +2,10 @@ extends layout
 
 block content
   h1 Photo Frame Simulator
+  p N (last instruction consumed): #[strong#simulator-n]
+  p.simulator-controls
+    button#simulator-fetch(type='button') Fetch instructions
+    button#simulator-reset(type='button') Reset N to 0
+  p#simulator-message(role='status')
+  img#simulator-photo.simulator-photo(hidden)
+  script(type='module' src='/js/simulator/main.js')

@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "start": "node dist/server.js",
-    "build": "tsc",
+    "build": "tsc && npm run build:simulator",
+    "build:simulator": "tsc -p tsconfig.simulator.json",
+    "predev": "npm run build:simulator",
     "dev": "ts-node src/server.ts",
     "test": "jest",
     "test:watch": "jest --watch"

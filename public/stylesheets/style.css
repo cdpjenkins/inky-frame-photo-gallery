@@ -90,3 +90,15 @@ a {
   display: block;
   border-radius: 2px;
 }
+
+.simulator-photo {
+  display: block;
+  max-width: 600px;
+  max-height: 448px;
+  border: 1px solid #ccc;
+}
+
+.simulator-controls {
+  display: flex;
+  gap: 8px;
+}
