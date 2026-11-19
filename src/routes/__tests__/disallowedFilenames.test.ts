@@ -125,7 +125,13 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 2: not served
-  it.todo('folder holds summer#1.jpg -> GET /images/summer%231.jpg -> 404');
+  it('folder holds summer#1.jpg -> GET /images/summer%231.jpg -> 404', async () => {
+    await startWith(['summer#1.jpg']);
+
+    const response = await request(server()).get('/images/summer%231.jpg');
+
+    expect(response.status).toBe(404);
+  });
 
   // Rule 2: its selection cannot be changed
   it.todo('folder holds "my cat.jpg" -> PATCH /api/photos/my%20cat.jpg with { "selected": true } -> 404 { "error": "Not found" }');

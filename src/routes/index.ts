@@ -66,7 +66,7 @@ router.get('/images/:filename', function(req, res, next) {
   const imageDir = req.app.get('imageDir');
   const filename = path.basename(req.params.filename);
 
-  if (!filename.endsWith('.jpg')) {
+  if (!isPhotoFilename(filename)) {
     res.status(404).send('Not found');
     return;
   }
