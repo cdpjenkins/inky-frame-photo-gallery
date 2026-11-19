@@ -5,7 +5,7 @@ import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCom
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
-import { isShowableFilename, showInstructionFor } from '../instructions/showInstruction';
+import { isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {
@@ -155,6 +155,10 @@ router.post('/admin/instructions', function(req, res, next) {
 });
 
 router.post('/admin/show-photo', function(req, res, next) {
+  if (typeof req.body.filename !== 'string') {
+    renderAdminPage(req, res, next, MALFORMED_SHOW_MESSAGE);
+    return;
+  }
   addInstructionFromAdminPage(req, res, next, showInstructionFor(req.body.filename));
 });
 

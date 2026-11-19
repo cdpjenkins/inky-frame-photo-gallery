@@ -142,7 +142,13 @@ describe('Reject invalid request bodies (story 0011)', () => {
 
   // Rule 5: a filename sent more than once is not a filename that can be shown. Express turns it into a list, which
   // would otherwise become the valid-looking "SHOW /images/cat.jpg,dog.jpg".
-  it.todo('Show on frame with filename sent twice (filename=cat.jpg&filename=dog.jpg) -> 400, admin page shows the SHOW error message, nothing added');
+  it('Show on frame with filename sent twice (filename=cat.jpg&filename=dog.jpg) -> 400, admin page shows the SHOW error message, nothing added', async () => {
+    const response = await showOnFrame('filename=cat.jpg&filename=dog.jpg');
+
+    expect(response.status).toBe(400);
+    expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   describe('verification', () => {
     // Relies on: test 1 (any non-boolean selected is rejected, and the selection is left unchanged)
