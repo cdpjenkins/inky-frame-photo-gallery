@@ -130,6 +130,10 @@ router.get('/instructions', function(req, res) {
 
 router.post('/admin/instructions', function(req, res, next) {
   const addInstructionCommand: AddInstructionCommand = req.app.get('addInstructionCommand');
+  if (typeof req.body.text !== 'string') {
+    renderAdminPage(req, res, next, 'Instruction must be text');
+    return;
+  }
 
   try {
     addInstructionCommand.execute(req.body.text);

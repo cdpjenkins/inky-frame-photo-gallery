@@ -55,6 +55,33 @@ function patchPhoto(filename: string, body: object) {
   return request(testApp).patch(`/api/photos/${filename}`).send(body);
 }
 
+// Form fields are sent as a raw urlencoded string, so tests can leave a field out or send it twice.
+function addInstruction(form: string) {
+  return request(testApp).post('/admin/instructions').type('form').send(form);
+}
+
+function showOnFrame(form: string) {
+  return request(testApp).post('/admin/show-photo').type('form').send(form);
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+function errorMessage(html: string): string | undefined {
+  const message = html.match(/<[^>]*role="alert"[^>]*>([^<]*)</)?.[1].trim();
+  return message === undefined ? undefined : decodeHtmlEntities(message);
+}
+
+async function instructionsAfter(n: number) {
+  return (await request(testApp).get(`/instructions?after=${n}`)).text;
+}
+
 async function listedPhotos(): Promise<string[]> {
   const text = (await request(testApp).get('/list')).text;
   return text === '' ? [] : text.split('\n');
@@ -96,7 +123,13 @@ describe('Reject invalid request bodies (story 0011)', () => {
   });
 
   // Rule 4: text must be a string
-  it.todo('admin adds an instruction with no text field -> 400, admin page shows "Instruction must be text", frame asks after 0 and receives an empty body');
+  it('admin adds an instruction with no text field -> 400, admin page shows "Instruction must be text", frame asks after 0 and receives an empty body', async () => {
+    const response = await addInstruction('');
+
+    expect(response.status).toBe(400);
+    expect(errorMessage(response.text)).toBe('Instruction must be text');
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   // Rule 5: the filename must be one that can be shown
   it.todo('Show on frame for "my cat.jpg" -> 400, admin page shows the SHOW error message, frame asks after 0 and receives an empty body');
