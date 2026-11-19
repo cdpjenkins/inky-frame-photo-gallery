@@ -152,27 +152,93 @@ describe('Reject invalid request bodies (story 0011)', () => {
 
   describe('verification', () => {
     // Relies on: test 1 (any non-boolean selected is rejected, and the selection is left unchanged)
-    it.todo('cat.jpg selected, PATCH cat.jpg with { "selected": "false" } -> 400 { "error": "selected must be true or false" }, /list still includes cat.jpg');
-    it.todo('PATCH cat.jpg with {} (no selected) -> 400 { "error": "selected must be true or false" }');
+    it('cat.jpg selected, PATCH cat.jpg with { "selected": "false" } -> 400 { "error": "selected must be true or false" }, /list still includes cat.jpg', async () => {
+      await patchPhoto('cat.jpg', { selected: true });
+
+      const response = await patchPhoto('cat.jpg', { selected: 'false' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'selected must be true or false' });
+      expect(await listedPhotos()).toContain('/images/cat.jpg');
+    });
+    it('PATCH cat.jpg with {} (no selected) -> 400 { "error": "selected must be true or false" }', async () => {
+      const response = await patchPhoto('cat.jpg', {});
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'selected must be true or false' });
+    });
 
     // Relies on: test 1 not rejecting a valid selected + existing PATCH behaviour (only selected is read)
-    it.todo('cat.jpg not selected, PATCH cat.jpg with { "selected": true, "colour": "red" } -> 200, /list includes cat.jpg');
+    it('cat.jpg not selected, PATCH cat.jpg with { "selected": true, "colour": "red" } -> 200, /list includes cat.jpg', async () => {
+      const response = await patchPhoto('cat.jpg', { selected: true, colour: 'red' });
+
+      expect(response.status).toBe(200);
+      expect(await listedPhotos()).toContain('/images/cat.jpg');
+    });
 
     // Relies on: test 3 (any non-string text is rejected)
-    it.todo('admin adds an instruction with text sent twice (text=a&text=b) -> 400, admin page shows "Instruction must be text", nothing added');
-    it.todo('admin adds an instruction with JSON body { "text": 42 } -> 400, admin page shows "Instruction must be text", nothing added');
+    it('admin adds an instruction with text sent twice (text=a&text=b) -> 400, admin page shows "Instruction must be text", nothing added', async () => {
+      const response = await addInstruction('text=a&text=b');
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe('Instruction must be text');
+      expect(await instructionsAfter(0)).toBe('');
+    });
+    it('admin adds an instruction with JSON body { "text": 42 } -> 400, admin page shows "Instruction must be text", nothing added', async () => {
+      const response = await request(testApp).post('/admin/instructions').send({ text: 42 });
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe('Instruction must be text');
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: test 3 checking the type only, + story 0001's empty-text rule
-    it.todo('admin adds "" -> 400, admin page shows "Instruction must not be empty" (unchanged from story 0001)');
+    it('admin adds "" -> 400, admin page shows "Instruction must not be empty" (unchanged from story 0001)', async () => {
+      const response = await addInstruction('text=');
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe('Instruction must not be empty');
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: test 4 (rejection of a filename that cannot be shown is rendered on the admin page)
-    it.todo('Show on frame with no filename field -> 400, admin page shows the SHOW error message, nothing added');
-    it.todo('Show on frame for "cat.png" -> 400, admin page shows the SHOW error message, nothing added');
+    it('Show on frame with no filename field -> 400, admin page shows the SHOW error message, nothing added', async () => {
+      const response = await showOnFrame('');
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
+    it('Show on frame for "cat.png" -> 400, admin page shows the SHOW error message, nothing added', async () => {
+      const response = await showOnFrame('filename=cat.png');
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: test 4 + story 0001 numbering (a rejection uses up no sequence number)
-    it.todo('latest seq is 3, Show on frame for "my cat.jpg" rejected, then Show on frame for cat.jpg -> frame asks after 3 and receives "4 SHOW /images/cat.jpg"');
+    it('latest seq is 3, Show on frame for "my cat.jpg" rejected, then Show on frame for cat.jpg -> frame asks after 3 and receives "4 SHOW /images/cat.jpg"', async () => {
+      for (let i = 1; i <= 3; i++) {
+        await addInstruction(`text=instruction%20${i}`);
+      }
+      expect((await showOnFrame('filename=my%20cat.jpg')).status).toBe(400);
+
+      await showOnFrame('filename=cat.jpg');
+
+      expect(await instructionsAfter(3)).toBe('4 SHOW /images/cat.jpg');
+    });
 
     // Relies on: test 3 + story 0001 numbering
-    it.todo('latest seq is 3, admin adds an instruction with no text field (rejected), then adds "sleep" -> frame asks after 3 and receives "4 sleep"');
+    it('latest seq is 3, admin adds an instruction with no text field (rejected), then adds "sleep" -> frame asks after 3 and receives "4 sleep"', async () => {
+      for (let i = 1; i <= 3; i++) {
+        await addInstruction(`text=instruction%20${i}`);
+      }
+      expect((await addInstruction('')).status).toBe(400);
+
+      await addInstruction('text=sleep');
+
+      expect(await instructionsAfter(3)).toBe('4 sleep');
+    });
   });
 });
