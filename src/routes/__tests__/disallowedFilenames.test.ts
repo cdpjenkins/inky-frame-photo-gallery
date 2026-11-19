@@ -219,30 +219,103 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
 
   describe('verification', () => {
     // Relies on: tests 1 and 2 (the allowed set includes upper case, digits, "-", "_", "~" and ".")
-    it.todo('folder holds Summer_2024-07.jpg, a~b.jpg and .jpg -> /admin shows all three in the gallery, and no notice');
+    it('folder holds Summer_2024-07.jpg, a~b.jpg and .jpg -> /admin shows all three in the gallery, and no notice', async () => {
+      await startWith(['Summer_2024-07.jpg', 'a~b.jpg', '.jpg']);
+
+      const html = await adminPage();
+
+      expect(galleryFilenames(html).sort()).toEqual(['.jpg', 'Summer_2024-07.jpg', 'a~b.jpg']);
+      expect(occurrences(decodeHtmlEntities(html), SKIPPED_PHOTOS_NOTICE)).toBe(0);
+    });
 
     // Relies on: test 6 (the warning is logged every time the folder is read, not once)
-    it.todo('folder holds cat.jpg and summer#1.jpg, /admin opened twice -> warning for summer#1.jpg logged twice');
+    it('folder holds cat.jpg and summer#1.jpg, /admin opened twice -> warning for summer#1.jpg logged twice', async () => {
+      await startWith(['cat.jpg', 'summer#1.jpg']);
+
+      await adminPage();
+      await adminPage();
+
+      expect(warningsLogged()).toEqual([
+        ['Skipping photo with disallowed name: summer#1.jpg'],
+        ['Skipping photo with disallowed name: summer#1.jpg'],
+      ]);
+    });
 
     // Relies on: tests 6 and 7 (only .jpg files are checked). "summer#1.png" is not in the spec's example; it is
     // added so the test fails if non-photos with disallowed names were warned about.
-    it.todo('folder holds cat.png, bird.JPG and summer#1.png, /admin opened and /list requested -> no warning logged');
+    it('folder holds cat.png, bird.JPG and summer#1.png, /admin opened and /list requested -> no warning logged', async () => {
+      await startWith(['cat.png', 'bird.JPG', 'summer#1.png']);
+
+      await adminPage();
+      await request(server()).get('/list');
+
+      expect(warningsLogged()).toEqual([]);
+    });
 
     // Relies on: tests 4 and 5 (they reject without reading the folder)
-    it.todo('folder holds summer#1.jpg -> GET /images/summer%231.jpg and PATCH /api/photos/summer%231.jpg -> no warning logged');
+    it('folder holds summer#1.jpg -> GET /images/summer%231.jpg and PATCH /api/photos/summer%231.jpg -> no warning logged', async () => {
+      await startWith(['summer#1.jpg']);
+
+      await request(server()).get('/images/summer%231.jpg');
+      await request(server()).patch('/api/photos/summer%231.jpg').send({ selected: true });
+
+      expect(warningsLogged()).toEqual([]);
+    });
 
     // Relies on: test 9 + non-photos being ignored (as above, summer#1.png is added to make it discriminating)
-    it.todo('folder holds cat.jpg, cat.png and summer#1.png -> /admin does not show the notice');
+    it('folder holds cat.jpg, cat.png and summer#1.png -> /admin does not show the notice', async () => {
+      await startWith(['cat.jpg', 'cat.png', 'summer#1.png']);
+
+      const page = decodeHtmlEntities(await adminPage());
+
+      expect(occurrences(page, SKIPPED_PHOTOS_NOTICE)).toBe(0);
+    });
 
     // Relies on: test 10 using the allowed set from test 2
-    it.todo('admin types "SHOW /images/café.jpg" -> 400, SHOW message, nothing added');
-    it.todo('admin types "SHOW /images/my%20cat.jpg" -> 400, SHOW message, nothing added');
+    it('admin types "SHOW /images/café.jpg" -> 400, SHOW message, nothing added', async () => {
+      await startWith(['cat.jpg']);
+
+      const response = await typeInstruction('SHOW /images/café.jpg');
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
+    it('admin types "SHOW /images/my%20cat.jpg" -> 400, SHOW message, nothing added', async () => {
+      await startWith(['cat.jpg']);
+
+      const response = await typeInstruction('SHOW /images/my%20cat.jpg');
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
 
     // Relies on: test 10 accepting allowed filenames
-    it.todo('admin types "SHOW /images/Summer_2024-07.jpg" -> accepted: frame asks after 0 and receives "1 SHOW /images/Summer_2024-07.jpg"');
-    it.todo('admin types "SHOW /images/.jpg" -> accepted: frame asks after 0 and receives "1 SHOW /images/.jpg"');
+    it('admin types "SHOW /images/Summer_2024-07.jpg" -> accepted: frame asks after 0 and receives "1 SHOW /images/Summer_2024-07.jpg"', async () => {
+      await startWith(['cat.jpg']);
+
+      await typeInstruction('SHOW /images/Summer_2024-07.jpg');
+
+      expect(await instructionsAfter(0)).toBe('1 SHOW /images/Summer_2024-07.jpg');
+    });
+    it('admin types "SHOW /images/.jpg" -> accepted: frame asks after 0 and receives "1 SHOW /images/.jpg"', async () => {
+      await startWith(['cat.jpg']);
+
+      await typeInstruction('SHOW /images/.jpg');
+
+      expect(await instructionsAfter(0)).toBe('1 SHOW /images/.jpg');
+    });
 
     // Relies on: test 10 (show-photo goes through the same SHOW check)
-    it.todo('Show on frame for "summer#1.jpg" (a crafted request) -> 400, admin page shows the SHOW message, nothing added');
+    it('Show on frame for "summer#1.jpg" (a crafted request) -> 400, admin page shows the SHOW message, nothing added', async () => {
+      await startWith(['cat.jpg', 'summer#1.jpg']);
+
+      const response = await request(server()).post('/admin/show-photo').type('form').send('filename=summer%231.jpg');
+
+      expect(response.status).toBe(400);
+      expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+      expect(await instructionsAfter(0)).toBe('');
+    });
   });
 });
