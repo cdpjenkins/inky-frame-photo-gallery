@@ -29,8 +29,9 @@ import http from 'http';
 import os from 'os';
 import { createApp } from '../../app';
 
+// Story 0012 replaced story 0006's message.
 const SHOW_ERROR_MESSAGE =
-  'A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains no whitespace or "/".';
+  'A SHOW instruction must be in the form "SHOW /images/<filename>.jpg", where the filename contains only letters, digits, "-", ".", "_" and "~".';
 
 let testDir: string;
 let testApp: http.Server;

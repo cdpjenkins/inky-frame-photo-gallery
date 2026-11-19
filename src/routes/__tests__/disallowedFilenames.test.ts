@@ -84,6 +84,19 @@ function occurrences(text: string, of: string): number {
   return text.split(of).length - 1;
 }
 
+function typeInstruction(text: string) {
+  return request(server()).post('/admin/instructions').type('form').send({ text });
+}
+
+function errorMessage(html: string): string | undefined {
+  const message = html.match(/<[^>]*role="alert"[^>]*>([^<]*)</)?.[1].trim();
+  return message === undefined ? undefined : decodeHtmlEntities(message);
+}
+
+async function instructionsAfter(n: number) {
+  return (await request(server()).get(`/instructions?after=${n}`)).text;
+}
+
 async function adminPage(): Promise<string> {
   return (await request(server()).get('/admin')).text;
 }
@@ -194,7 +207,15 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 5: typed SHOW must name an allowed filename; the new SHOW message
-  it.todo('admin types "SHOW /images/summer#1.jpg" -> 400, admin page shows the SHOW message, frame asks after 0 and receives an empty body');
+  it('admin types "SHOW /images/summer#1.jpg" -> 400, admin page shows the SHOW message, frame asks after 0 and receives an empty body', async () => {
+    await startWith(['cat.jpg']);
+
+    const response = await typeInstruction('SHOW /images/summer#1.jpg');
+
+    expect(response.status).toBe(400);
+    expect(errorMessage(response.text)).toBe(SHOW_ERROR_MESSAGE);
+    expect(await instructionsAfter(0)).toBe('');
+  });
 
   describe('verification', () => {
     // Relies on: tests 1 and 2 (the allowed set includes upper case, digits, "-", "_", "~" and ".")
