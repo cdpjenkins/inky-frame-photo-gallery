@@ -1,5 +1,5 @@
 // Test list for story 0011: Reject invalid request bodies with 400
-// (stories/todo/0011-reject-invalid-request-bodies.md).
+// (stories/doing/0011-reject-invalid-request-bodies.md).
 //
 // "PATCH F with B" = PATCH /api/photos/F with JSON body B (the admin page's Select checkbox).
 // "Admin adds X" = POST /admin/instructions with form field text=X (story 0001).
