@@ -5,7 +5,8 @@ import { TogglePhotoSelectionCommand } from '../commands/TogglePhotoSelectionCom
 import { PhotoMetadataRepository } from '../repositories/PhotoMetadataRepository';
 import { InstructionRepository } from '../repositories/InstructionRepository';
 import { AddInstructionCommand, InvalidInstructionError } from '../commands/AddInstructionCommand';
-import { hasAllowedName, isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
+import { isShowableFilename, MALFORMED_SHOW_MESSAGE, showInstructionFor } from '../instructions/showInstruction';
+import { hasAllowedName } from '../photos/photoFilename';
 const router = express.Router();
 
 router.get('/', function(req, res, next) {

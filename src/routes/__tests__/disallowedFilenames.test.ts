@@ -109,7 +109,11 @@ describe('Disallow filenames that are not safe in URLs (story 0012)', () => {
   });
 
   // Rule 1: every character outside the allowed set disallows a photo
-  it.todo('folder holds cat.jpg, "my cat.jpg", what?.jpg, 50%.jpg, café.jpg and it\'s.jpg -> /admin shows cat.jpg; all the others are left out of the gallery');
+  it('folder holds cat.jpg, "my cat.jpg", what?.jpg, 50%.jpg, café.jpg and it\'s.jpg -> /admin shows cat.jpg; all the others are left out of the gallery', async () => {
+    await startWith(['cat.jpg', 'my cat.jpg', 'what?.jpg', '50%.jpg', 'café.jpg', "it's.jpg"]);
+
+    expect(galleryFilenames(await adminPage())).toEqual(['cat.jpg']);
+  });
 
   // Rule 2: left out of /list
   it.todo('folder holds cat.jpg and summer#1.jpg, both selected earlier -> /list is "/images/cat.jpg" only');
