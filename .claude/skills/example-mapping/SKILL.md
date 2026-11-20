@@ -196,39 +196,39 @@ Use this structure:
 ```markdown
 # Example Mapping: <Feature Name>
 
-## Story (gelb)
+## Story (yellow)
 
 <User story or feature description>
 
-## Rules (blau)
+## Rules (blue)
 
-### Regel 1: <Rule Name>
+### Rule 1: <Rule Name>
 <Description of the rule>
 
-### Regel 2: <Rule Name>
+### Rule 2: <Rule Name>
 <Description of the rule>
 
-## Examples (gruen)
+## Examples (green)
 
-### Zu Regel 1: <Rule Name>
-- <Input> -> <Expected Output>
-- <Input> -> <Expected Output>
-
-### Zu Regel 2: <Rule Name>
+### For Rule 1: <Rule Name>
 - <Input> -> <Expected Output>
 - <Input> -> <Expected Output>
 
-## Questions (rot)
+### For Rule 2: <Rule Name>
+- <Input> -> <Expected Output>
+- <Input> -> <Expected Output>
+
+## Questions (red)
 
 - <Open question 1> (resolves: <who or what could answer>)
 - <Open question 2>
 (or: "No open questions - all ambiguities were resolved.")
 
-## New Stories (ausgelagert)
+## New Stories (sliced out)
 
-- <Titel der ausgelagerten Story>
-- <Titel der ausgelagerten Story>
-(or: "Keine - der Scope hat gehalten.")
+- <Title of the sliced-out story>
+- <Title of the sliced-out story>
+(or: "None - the scope held.")
 ```
 
 ## Health Indicators
@@ -258,7 +258,7 @@ After completing the Example Mapping, suggest:
 - **NEVER assume, ALWAYS ask** - Every rule and example MUST come from the user, not from you
 - **When in doubt, ask** - If you are even slightly unsure about a rule or behavior, ask. Do NOT guess.
 - **No silent gap-filling** - If information is missing, ask for it. Do NOT fill it in yourself.
-- **Use concrete values** - "3 Zombies -> 9 Punkte" not "some zombies -> some points"
+- **Use concrete values** - "3 zombies -> 9 points" not "some zombies -> some points"
 - **Keep it focused** - One feature per session; adjacent behavior becomes a New Story card, not a detour
 - **Track everything** - Every rule, example, and question gets recorded
 - **Timebox mentally** - If the session drags on, the feature might be too large
