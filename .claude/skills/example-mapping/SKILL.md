@@ -183,7 +183,13 @@ You MUST ask the user at least these categories of questions:
 
 ## Output Format
 
-Write the result to a markdown file at the location the user specifies. By default, follow the story conventions in `AGENTS.md` (Stories section): `stories/todo/NNNN-kebab-case-title.md`, using the next unused story number. Each New Story card also gets its own numbered stub file in `stories/todo/`, linked to and from the original story.
+Write the result to a markdown file at the location the user specifies. By default, follow the story conventions in `AGENTS.md` (Stories section):
+
+- **The story itself goes to `stories/ready/`** once its examples have been created: `stories/ready/NNNN-kebab-case-title.md`.
+  - A new story takes the next unused story number.
+  - When refining an existing story (e.g. one in `stories/todo/`), move its file to `stories/ready/`, keeping its number, and update any links to it from other stories and files.
+  - If red cards (open questions) remain, the story is not ready: leave it in, or write it to, `stories/todo/` and say why.
+- **Each New Story card gets its own numbered stub file in `stories/todo/`**, since it has no examples yet. It links back to the original story, and the original story links to it.
 
 Use this structure:
 
@@ -241,7 +247,7 @@ After writing the file, report the health of the Example Mapping:
 ## Next Step
 
 After completing the Example Mapping, suggest:
-- If healthy: "Example Mapping complete.
+- If healthy: "Example Mapping complete. The story is in `stories/ready/`."
 - If too many questions: "There are still open questions. Resolve them before proceeding."
 - If too large: "Consider splitting this feature into smaller stories."
 - If a rule carries many examples: "Rule X may hide a second rule - worth splitting before writing tests."
