@@ -72,7 +72,9 @@ function errorMessage(html: string): string | undefined {
 // The filenames of the gallery thumbnails on /admin that have a "Show on frame" button: a gallery item whose
 // thumbnail is /images/F and which holds a form that posts filename F to /admin/show-photo.
 function thumbnailsWithShowButton(html: string): string[] {
+  // Only the markup before the page's script counts: the script holds an HTML template for photo items.
   return html
+    .split('<script')[0]
     .split('<div class="gallery-item"')
     .slice(1)
     .flatMap(item => {

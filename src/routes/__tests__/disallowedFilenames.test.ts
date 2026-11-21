@@ -71,9 +71,11 @@ function decodeHtmlEntities(text: string): string {
 }
 
 // The filenames the /admin gallery refers to, through any gallery item's thumbnail (img alt), Select checkbox
-// (data-filename) or "Show on frame" form (hidden filename value).
+// (data-filename) or "Show on frame" form (hidden filename value). Only the markup before the page's script counts:
+// the script holds an HTML template with placeholder attributes such as alt="${filename}".
 function galleryFilenames(html: string): string[] {
-  const items = html.split('<div class="gallery-item"').slice(1);
+  const markup = html.split('<script')[0];
+  const items = markup.split('<div class="gallery-item"').slice(1);
   const referenced = items.flatMap(item =>
     [...item.matchAll(/(?:alt|data-filename|value)="([^"]*)"/g)].map(([, value]) => decodeHtmlEntities(value)),
   );
