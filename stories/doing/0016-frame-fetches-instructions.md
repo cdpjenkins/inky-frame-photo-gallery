@@ -7,7 +7,7 @@ I want the Inky Frame to wake up regularly, fetch the instructions from the back
 so that the frame is connected to the backend and ready to carry out instructions.
 
 The frame is the C++ client in [`inky-frame-photo-gallery-cpp/`](../../inky-frame-photo-gallery-cpp/). This story was sliced from
-[story 0013](0013-frame-carries-out-show.md), which builds on it to carry out SHOW.
+[story 0013](../ready/0013-frame-carries-out-show.md), which builds on it to carry out SHOW.
 
 Order: comes after [story 0014](../done/0014-unit-test-frame-client-on-host.md) (host-side unit tests),
 [story 0015](../done/0015-merge-frame-client-into-this-repo.md) (merge the frame client into this repo) and

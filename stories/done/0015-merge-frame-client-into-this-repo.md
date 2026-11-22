@@ -4,7 +4,7 @@ Status: Scoped (a restructuring task, not example-mapped or test-driven).
 
 Sliced out of [0013-frame-carries-out-show](../ready/0013-frame-carries-out-show.md) during its Example Mapping session.
 
-Order: comes before [story 0016](../ready/0016-frame-fetches-instructions.md) and [story 0013](../ready/0013-frame-carries-out-show.md).
+Order: comes before [story 0016](../doing/0016-frame-fetches-instructions.md) and [story 0013](../ready/0013-frame-carries-out-show.md).
 
 ## Story
 
