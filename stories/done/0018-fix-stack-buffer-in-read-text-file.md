@@ -5,7 +5,7 @@ Status: Not yet example-mapped.
 Found in a review of the C++ frame client (see
 [`inky-frame-photo-gallery-cpp/REVIEW.md`](../../inky-frame-photo-gallery-cpp/REVIEW.md)).
 
-Order: to be done, and tested on the device, before [story 0016](../doing/0016-frame-fetches-instructions.md).
+Order: to be done, and tested on the device, before [story 0016](../done/0016-frame-fetches-instructions.md).
 
 ## Context
 

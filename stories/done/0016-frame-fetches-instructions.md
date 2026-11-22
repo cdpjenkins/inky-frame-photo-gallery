@@ -167,3 +167,11 @@ Needing the SD card (optional until it can be read on the Mac):
    frame asks for `/instructions?after=8`.
 10. [ ] **Fetch error**: with `/last_instruction.txt` holding a number above the latest sequence number, the backend
     answers 409 and the frame logs `Could not fetch instructions (409)`.
+
+## Outcome
+
+Moved to done on 2026-11-22 with checks 1, 4 and 7 passed on the device: the frame connects, fetches
+`/instructions?after=0` (status 200), logs each instruction, logs an unreachable backend and sleeps, and has 720 bytes
+of stack headroom. Checks 2, 3, 5, 6 and 8 were not run, because the hardware was not available, and checks 9-10 need
+the SD card. Checks 3 and 8 cover new code that has not yet run on the device (`sleep_until_next_cycle()`: the wait
+and reboot on USB power, and powering off and waking on battery); they are to be confirmed during story 0013.
