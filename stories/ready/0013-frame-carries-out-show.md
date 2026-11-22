@@ -14,7 +14,7 @@ Order: comes after [story 0016](0016-frame-fetches-instructions.md), which makes
 `/instructions?after=N` (N from a file on the SD card), log each instruction it receives, and log failed fetches and
 WiFi failures. This story keeps all of that, including logging each received instruction. It also comes after
 [story 0014](../todo/0014-unit-test-frame-client-on-host.md) and
-[story 0015](../todo/0015-merge-frame-client-into-this-repo.md).
+[story 0015](0015-merge-frame-client-into-this-repo.md).
 
 Out of scope:
 
@@ -73,5 +73,5 @@ No open questions - all ambiguities were resolved.
 ## New Stories (sliced out)
 
 - [0014](../todo/0014-unit-test-frame-client-on-host.md): Unit-test the C++ frame client on the host
-- [0015](../todo/0015-merge-frame-client-into-this-repo.md): Merge the C++ frame client into this repo
+- [0015](0015-merge-frame-client-into-this-repo.md): Merge the C++ frame client into this repo
 - [0016](0016-frame-fetches-instructions.md): The Inky Frame wakes, fetches instructions and sleeps

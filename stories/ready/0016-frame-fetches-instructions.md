@@ -10,7 +10,7 @@ The frame is the C++ client in `~/GitProjects/inky-frame-photo-gallery-cpp`. Thi
 [story 0013](0013-frame-carries-out-show.md), which builds on it to carry out SHOW.
 
 Order: comes after [story 0014](../todo/0014-unit-test-frame-client-on-host.md) (host-side unit tests) and
-[story 0015](../todo/0015-merge-frame-client-into-this-repo.md) (merge the frame client into this repo), and before
+[story 0015](0015-merge-frame-client-into-this-repo.md) (merge the frame client into this repo), and before
 story 0013.
 
 Out of scope:
