@@ -2,6 +2,7 @@
   "name": "inky-frame-photo-gallery-backend-ts",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc && npm run build:simulator",

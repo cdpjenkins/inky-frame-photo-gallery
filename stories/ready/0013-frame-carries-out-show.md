@@ -6,7 +6,7 @@ As an admin,
 I want the Inky Frame to carry out the SHOW instructions it fetches,
 so that I can make the real frame display a chosen photo remotely.
 
-The frame is the C++ client in `~/GitProjects/inky-frame-photo-gallery-cpp`. It carries out instructions exactly as
+The frame is the C++ client in [`inky-frame-photo-gallery-cpp/`](../../inky-frame-photo-gallery-cpp/). It carries out instructions exactly as
 the Photo Frame Simulator does in [story 0006](../done/0006-show-photo-instruction.md) (Rules 7-10), and logs to the
 serial port where the simulator shows messages on its page.
 

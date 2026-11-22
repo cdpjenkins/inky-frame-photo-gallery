@@ -8,7 +8,7 @@ Order: comes before [story 0016](../ready/0016-frame-fetches-instructions.md) an
 
 ## Context
 
-The C++ frame client (`~/GitProjects/inky-frame-photo-gallery-cpp`) has no tests, and all its logic is in `main.cpp`,
+The C++ frame client ([`inky-frame-photo-gallery-cpp/`](../../inky-frame-photo-gallery-cpp/)) has no tests, and all its logic is in `main.cpp`,
 mixed with calls to the Pico SDK and the Inky Frame hardware. To build stories 0016 and 0013 test-first, the
 instruction logic (parsing responses, updating N, choosing the last SHOW, handling failures) needs to be plain C++
 that can be built and unit-tested on the development machine, with the hardware behind small interfaces.
