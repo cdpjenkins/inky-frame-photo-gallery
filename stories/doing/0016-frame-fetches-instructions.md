@@ -81,3 +81,67 @@ No open questions - all ambiguities were resolved.
 ## New Stories (sliced out)
 
 None - this story was itself sliced out of story 0013.
+
+## What was done
+
+- **One cycle per wake-up** (`main.cpp`): mount the SD card, connect to WiFi, read N, fetch
+  `/instructions?after=N` into `/instructions.txt` on the SD card, log each instruction, then sleep. The slideshow is
+  gone; the JPEG drawing code stays for story 0013.
+- **Sleeping**: `sleep_until_next_cycle()` does what `inky.sleep(5)` does (sets the RTC timer and releases the
+  power-hold pin). On battery the power goes off there, and the RTC powers the frame on again 5 minutes later, which
+  starts a fresh cycle. `inky.sleep()` would then loop forever, so on USB power (where the power cannot go off) the
+  frame would never run another cycle; instead it waits 5 minutes and reboots, which is also a fresh start.
+- **No exceptions**: connecting to WiFi, mounting the SD card, reading files and HTTP requests return results.
+  `HttpConnection` now reports the HTTP status, and returns at once if a request cannot be started (lwIP's own
+  15-second timeout covers a backend that stops answering).
+- **Portable code**: `Instructions.hpp/.cpp` parse `/instructions` responses and N in place (`std::string_view`, no
+  heap), with host tests in `test/InstructionsTest.cpp` (9 test cases).
+- **Memory**: the largest stack frames on a cycle's path are `http_get_to_file` (664 bytes), `read_text_file` (632)
+  and `run_cycle` (208), measured with `gcc -fstack-usage`.
+- **Settings**: `wifi_settings_template.h` gains `SERVER_ADDRESS` and `SERVER_PORT` (3000).
+
+## Decisions made during implementation
+
+These were not fixed by the rules above:
+
+- The N file is `/last_instruction.txt`, holding N as a decimal number (story 0013 will write it).
+- If that file exists but does not hold a number, the frame logs
+  `/last_instruction.txt does not hold a sequence number, so N is 0` and uses 0.
+- A response larger than the 16 KB buffer is logged as
+  `Could not read the instructions: the response is larger than 16383 bytes`, and the frame tries again next cycle.
+- If the SD card cannot be mounted, the frame logs `Could not mount the SD card` and tries again next cycle (the
+  response is downloaded to the SD card, so a cycle cannot work without it).
+
+## Device checks (by the admin, on the Inky Frame)
+
+Before building: add `SERVER_ADDRESS` (the backend's IP address) and `SERVER_PORT 3000` to the real
+`wifi_settings.h`, as in the template. Run the backend with `npm run dev` from `backend-ts/`; its log shows each
+request the frame makes (e.g. `GET /instructions?after=0 200`).
+
+On USB power, watching the serial log:
+
+1. [ ] **First cycle, no N file**: the log shows `No /last_instruction.txt, so N is 0`, the backend logs
+   `GET /instructions?after=0`, and the frame logs `Received instruction <seq>: <text>` for each instruction (e.g.
+   add `SHOW /images/cat.jpg` and `sleep` on the admin page first).
+2. [ ] **No instructions**: with no instructions on the backend, no `Received instruction` line is logged.
+3. [ ] **Sleep and next cycle**: the log shows `Sleeping for 5 minutes`, and 5 minutes later
+   `Still powered (USB), so restarting for the next cycle`; the next cycle asks for `/instructions?after=0` again
+   (N does not change in this story).
+4. [ ] **Backend unreachable**: with the backend stopped, the log shows `Could not reach the backend`, then
+   `Sleeping for 5 minutes`.
+5. [ ] **WiFi failure**: with a wrong WiFi password in `wifi_settings.h` (temporarily), the log shows
+   `Could not connect to WiFi: ...`, then `Sleeping for 5 minutes`.
+6. [ ] **Screen**: the screen is left as it was in every cycle.
+7. [ ] **Stack**: every `Stack ...` line says the stack pointer is above the bottom of the stack.
+
+On battery:
+
+8. [ ] **Power off and wake**: the frame powers off after a cycle, and the backend logs a new
+   `GET /instructions?after=0` about every 5 minutes.
+
+Needing the SD card (optional until it can be read on the Mac):
+
+9. [ ] **N from the file**: with `/last_instruction.txt` holding `8` (and at least 8 instructions on the backend), the
+   frame asks for `/instructions?after=8`.
+10. [ ] **Fetch error**: with `/last_instruction.txt` holding a number above the latest sequence number, the backend
+    answers 409 and the frame logs `Could not fetch instructions (409)`.
