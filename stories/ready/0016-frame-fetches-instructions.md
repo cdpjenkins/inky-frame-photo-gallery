@@ -9,9 +9,11 @@ so that the frame is connected to the backend and ready to carry out instruction
 The frame is the C++ client in [`inky-frame-photo-gallery-cpp/`](../../inky-frame-photo-gallery-cpp/). This story was sliced from
 [story 0013](0013-frame-carries-out-show.md), which builds on it to carry out SHOW.
 
-Order: comes after [story 0014](../done/0014-unit-test-frame-client-on-host.md) (host-side unit tests) and
-[story 0015](../done/0015-merge-frame-client-into-this-repo.md) (merge the frame client into this repo), and before
-story 0013.
+Order: comes after [story 0014](../done/0014-unit-test-frame-client-on-host.md) (host-side unit tests),
+[story 0015](../done/0015-merge-frame-client-into-this-repo.md) (merge the frame client into this repo) and
+[story 0018](../todo/0018-fix-stack-buffer-in-read-text-file.md) (fix the 16 KB stack buffer in `read_text_file`), and
+before story 0013. See also the review of the client in
+[`inky-frame-photo-gallery-cpp/REVIEW.md`](../../inky-frame-photo-gallery-cpp/REVIEW.md).
 
 Out of scope:
 
