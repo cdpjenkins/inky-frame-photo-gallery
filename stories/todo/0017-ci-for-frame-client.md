@@ -16,7 +16,7 @@ The C++ client's old repo had a CMake workflow (`.github/workflows/cmake.yml`), 
 - It also built and uploaded release packages when a GitHub release was created.
 
 A new workflow should build the firmware from `inky-frame-photo-gallery-cpp/`, and run the host-side unit tests once
-[story 0014](../doing/0014-unit-test-frame-client-on-host.md) adds them. `wifi_settings.h` is not committed, so CI will
+[story 0014](../done/0014-unit-test-frame-client-on-host.md) adds them. `wifi_settings.h` is not committed, so CI will
 need a stand-in built from `wifi_settings_template.h`.
 
 ## Note: how the firmware build finds `wifi_settings.h` today

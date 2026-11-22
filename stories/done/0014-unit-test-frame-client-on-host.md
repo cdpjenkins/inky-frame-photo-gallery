@@ -110,8 +110,8 @@ The Pico SDK and Pimoroni library paths are set in the developer's environment (
     reports `0% tests passed, 1 tests failed out of 1`; then undo the change.
 11. [x] **Works on a fresh checkout** (Rule 3; relies on checks 1-5): in a fresh clone of the repo, the three commands
     of Rule 3, run from `inky-frame-photo-gallery-cpp/` -> all exit 0 and CTest reports 1 test passed.
-12. [ ] **The firmware build is unchanged** (Rule 2; relies on all of the above): `git diff 3d73cad -- CMakeLists.txt`
-    -> no changes (passes); the admin builds the firmware by hand as before (still to do).
+12. [x] **The firmware build is unchanged** (Rule 2; relies on all of the above): `git diff 3d73cad -- CMakeLists.txt`
+    -> no changes (passes); the admin built the firmware by hand as before, and ran it on the frame: it works.
 
 ## Questions (red)
 
