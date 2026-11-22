@@ -18,9 +18,17 @@ Run each part's commands from its own directory, not from the repo root:
 
 - **Backend** — from `backend-ts/`: `npm ci`, `npm run build`, `npm test` (or `npx jest`), `npx tsc --noEmit`,
   `npm run build:simulator`, `npm run dev`.
-- **C++ client** — from `inky-frame-photo-gallery-cpp/`, with CMake, the Pico SDK and the Pimoroni libraries (see its
-  `README.md`). It needs a `wifi_settings.h`, made from `wifi_settings_template.h`, which is not committed. It has no
-  host-side tests yet (story 0014) and no CI yet (story 0017).
+- **C++ client firmware** — from `inky-frame-photo-gallery-cpp/`, with CMake, the Pico SDK and the Pimoroni libraries
+  (see its `README.md`). It needs a `wifi_settings.h`, made from `wifi_settings_template.h`, which is not committed.
+  It has no CI yet (story 0017).
+- **C++ client unit tests** — run on the development machine with only CMake and a C++ compiler (no Pico SDK or
+  Pimoroni libraries; doctest is vendored in `test/doctest.h`). From `inky-frame-photo-gallery-cpp/`:
+
+  ```
+  cmake -S test -B build-host
+  cmake --build build-host
+  ctest --test-dir build-host --output-on-failure
+  ```
 
 ## Stories
 

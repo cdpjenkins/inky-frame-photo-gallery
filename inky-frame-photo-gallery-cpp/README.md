@@ -2,6 +2,7 @@
 
 This project is intended as a starting point for working with the Pico SDK and Pimoroni Libraries in C++.
 
+- [Unit tests on the host](#unit-tests-on-the-host)
 - [Before you start](#before-you-start)
 - [Preparing your build environment](#preparing-your-build-environment)
 - [Grab the Pimoroni libraries](#grab-the-pimoroni-libraries)
@@ -9,6 +10,23 @@ This project is intended as a starting point for working with the Pico SDK and P
 - [Prepare Visual Studio Code](#prepare-visual-studio-code)
 - [Prepare your project](#prepare-your-project)
 - [Pick your LICENSE](#pick-your-license)
+
+## Unit tests on the host
+
+The client's portable logic is unit-tested on the development machine, not on the Inky Frame. The tests are a
+separate CMake project in `test/`, written with [doctest](https://github.com/doctest/doctest) (vendored as
+`test/doctest.h`). They need only CMake and a C++ compiler: no Pico SDK, no Pimoroni libraries and no
+`wifi_settings.h`.
+
+From this directory:
+
+```bash
+cmake -S test -B build-host
+cmake --build build-host
+ctest --test-dir build-host --output-on-failure
+```
+
+`build-host/` is ignored by git.
 
 ## Before you start
 
