@@ -105,42 +105,73 @@ TEST_CASE("N is written for /last_instruction.txt as a decimal number that reads
 TEST_SUITE("verification") {
     // Relies on: the "7 SHOW /images/cat.jpg" test, whose code takes the path of every SHOW in turn, so the last one
     // wins. (Moved here from the driving tests before being activated.)
-    TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 SHOW /images/dog.jpg\" -> only the last SHOW: /images/dog.jpg"
-              * doctest::skip()) {
+    TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 SHOW /images/dog.jpg\" -> only the last SHOW: /images/dog.jpg") {
+        Outcome outcome = work_out("7 SHOW /images/cat.jpg\n8 SHOW /images/dog.jpg");
+
+        CHECK(outcome.show_path == std::optional<std::string>("/images/dog.jpg"));
+        CHECK(outcome.ignored.empty());
     }
 
     // Relies on: the "7 SHOW /images/cat.jpg" and "8 sleep" tests. (Moved here from the driving tests before being
     // activated: the highest number is also the last one here, so it forces nothing new; the "highest even when it
     // is not the last line" test drives that.)
     TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 sleep\" -> N becomes 8 (the highest), the SHOW is "
-              "/images/cat.jpg" * doctest::skip()) {
+              "/images/cat.jpg") {
+        Outcome outcome = work_out("7 SHOW /images/cat.jpg\n8 sleep");
+
+        CHECK(outcome.new_n == std::optional<uint32_t>(8));
+        CHECK(outcome.show_path == std::optional<std::string>("/images/cat.jpg"));
+        CHECK(outcome.ignored == Ignored{{8, "sleep"}});
     }
 
     // Relies on: the "7 SHOW /images/cat.jpg" test. Whether the photo later downloads makes no difference here.
-    TEST_CASE("response \"7 SHOW /images/dog.jpg\" (dog.jpg will return 404) -> N still becomes 7" * doctest::skip()) {
+    TEST_CASE("response \"7 SHOW /images/dog.jpg\" (dog.jpg will return 404) -> N still becomes 7") {
+        Outcome outcome = work_out("7 SHOW /images/dog.jpg");
+
+        CHECK(outcome.new_n == std::optional<uint32_t>(7));
+        CHECK(outcome.show_path == std::optional<std::string>("/images/dog.jpg"));
     }
 
     // Relies on: the "7 SHOW /images/cat.jpg" test (nothing remembers which photo is on screen).
-    TEST_CASE("response \"9 SHOW /images/cat.jpg\" while cat.jpg is on screen -> the SHOW is /images/cat.jpg"
-              * doctest::skip()) {
+    TEST_CASE("response \"9 SHOW /images/cat.jpg\" while cat.jpg is on screen -> the SHOW is /images/cat.jpg") {
+        Outcome first = work_out("7 SHOW /images/cat.jpg");
+        Outcome again = work_out("9 SHOW /images/cat.jpg");
+
+        CHECK(first.show_path == std::optional<std::string>("/images/cat.jpg"));
+        CHECK(again.show_path == std::optional<std::string>("/images/cat.jpg"));
     }
 
     // Relies on: the "8 sleep" test.
-    TEST_CASE("response \"8 sleep\\n9 HELLO\" -> both are ignored as unknown, in order: 8 sleep, then 9 HELLO"
-              * doctest::skip()) {
+    TEST_CASE("response \"8 sleep\\n9 HELLO\" -> both are ignored as unknown, in order: 8 sleep, then 9 HELLO") {
+        CHECK(work_out("8 sleep\n9 HELLO").ignored == Ignored{{8, "sleep"}, {9, "HELLO"}});
     }
 
     // Relies on: the highest-N, last-SHOW and "8 sleep" tests together.
     TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 sleep\\n9 SHOW /images/dog.jpg\" -> N becomes 9, the SHOW is "
-              "/images/dog.jpg, and only \"8 sleep\" is ignored" * doctest::skip()) {
+              "/images/dog.jpg, and only \"8 sleep\" is ignored") {
+        Outcome outcome = work_out("7 SHOW /images/cat.jpg\n8 sleep\n9 SHOW /images/dog.jpg");
+
+        CHECK(outcome.new_n == std::optional<uint32_t>(9));
+        CHECK(outcome.show_path == std::optional<std::string>("/images/dog.jpg"));
+        CHECK(outcome.ignored == Ignored{{8, "sleep"}});
     }
 
     // Relies on: story 0016's for_each_instruction, which skips lines that are not instructions.
     TEST_CASE("response \"hello\\n7 sleep\" -> N becomes 7; \"hello\" is not an instruction, so it is neither ignored "
-              "nor counted" * doctest::skip()) {
+              "nor counted") {
+        Outcome outcome = work_out("hello\n7 sleep");
+
+        CHECK(outcome.new_n == std::optional<uint32_t>(7));
+        CHECK(outcome.ignored == Ignored{{7, "sleep"}});
     }
 
     // Relies on: the "N is written" test.
-    TEST_CASE("N = 0 and N = 4294967295 are written so that they read back unchanged" * doctest::skip()) {
+    TEST_CASE("N = 0 and N = 4294967295 are written so that they read back unchanged") {
+        for (uint32_t n : {0u, 4294967295u}) {
+            CAPTURE(n);
+            char text[16];
+            REQUIRE(format_sequence_number(n, text, sizeof text));
+            CHECK(parse_sequence_number(text) == std::optional<uint32_t>(n));
+        }
     }
 }
