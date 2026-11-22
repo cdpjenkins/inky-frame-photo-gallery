@@ -4,13 +4,16 @@ Reviewed on 2026-11-22, before stories 0016 and 0013 add instruction handling. T
 the SD card, JPEG decoding and the e-ink display all work, which is the hard part on this hardware. It is not yet a
 structure to build on.
 
-## The likely cause of the freezes: a stack overflow
+## Fixed: the stack overflow behind the freezes
 
-Core 0's stack is only 2 KB, and `read_text_file` declares a 16 KB local buffer, so calling it silently overwrites
-about 14 KB of other memory, including the top of the heap. That would explain the freezes seen when returning
-`std::string`s or throwing exceptions, and the "memory getting trampled" comment in `HttpConnection.cpp`. Fixing and
-confirming this is [story 0018](../stories/doing/0018-fix-stack-buffer-in-read-text-file.md), to be done before story
-0016.
+Core 0's stack is only 2 KB, and `read_text_file` declared a 16 KB local buffer, giving it a 17,016-byte stack
+frame, so calling it silently overwrote other memory, including the top of the heap. That was the likely cause of
+the freezes seen when returning `std::string`s or throwing exceptions, and of the "memory getting trampled" comment in
+`HttpConnection.cpp`.
+
+[Story 0018](../stories/done/0018-fix-stack-buffer-in-read-text-file.md) made the buffer `static` (the frame is now
+632 bytes) and added a stack diagnostic. On the device, the stack no longer overflows and returning strings works;
+the deepest stack use is 1320 of 2048 bytes. Whether exceptions are now safe has not been checked on the device yet.
 
 ## Other problems, roughly by risk
 

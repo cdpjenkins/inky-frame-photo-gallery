@@ -58,14 +58,32 @@ The client still runs the slideshow from `/list.txt` on the SD card (`USE_WIFI` 
 `std::string` from `read_text_file` and a `std::vector<std::string>` from `split_by_newlines`, and throws
 `std::runtime_error` when a file cannot be opened, so it exercises both things that froze the device before.
 
-1. [ ] **With the fix and `/list.txt` on the SD card**: the slideshow works, and every `Stack ...` line in the serial
+1. [x] **With the fix and `/list.txt` on the SD card**: the slideshow works, and every `Stack ...` line in the serial
    log says the stack pointer is *above* the bottom of the stack, with the deepest use under 2048 bytes.
+   Result (2026-11-22): the slideshow works, and the log shows
+   `Stack after drawing a photo: deepest use 1320 of 2048 bytes; stack pointer is 1968 bytes above the bottom of the
+   stack`. The deepest use is 65% of the stack, leaving about 700 bytes of headroom, which stories 0016 and 0013 need
+   to respect.
 2. [ ] **With the fix and no `/list.txt` on the SD card**: the serial log shows `runtime_error:` and
    `Failed to open file for reading`, i.e. the exception is thrown, caught and reported rather than freezing the
    frame. (The program then stops, as before.)
+   Not run (2026-11-22): the SD card cannot be read on the admin's Mac without hardware that is not to hand.
 3. [ ] **Optional, to see the old behaviour**: temporarily remove `static` from `buffer` in `read_text_file`, rebuild,
    and run with `/list.txt` on the SD card. Expect the frame to freeze, or the log to show
    `OVERFLOW: stack pointer is ... bytes BELOW the bottom of the stack`. Then put `static` back.
+   Not run.
 
 If checks 1 and 2 pass, the hypothesis is confirmed: the memory rule for stories 0016 and 0013 is "no large local
 variables", not "no strings".
+
+## Outcome
+
+Check 1 was counted as enough for now. What it shows:
+
+- **Confirmed**: the stack no longer overflows, and returning `std::string`s (from `read_text_file`) and a
+  `std::vector<std::string>` (from `split_by_newlines`) works on the device.
+- **Not yet confirmed**: that throwing an exception no longer freezes the frame (check 2). Until it is, stories 0016
+  and 0013 should keep avoiding exceptions, which they need to anyway ("log, sleep, try again").
+- **Headroom**: the deepest stack use is 1320 of 2048 bytes. New code must not add large local variables.
+- **The stack diagnostic stays in** `main.cpp` for now, to keep an eye on stack use while stories 0016 and 0013 are
+  built.

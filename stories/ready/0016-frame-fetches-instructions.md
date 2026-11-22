@@ -11,7 +11,7 @@ The frame is the C++ client in [`inky-frame-photo-gallery-cpp/`](../../inky-fram
 
 Order: comes after [story 0014](../done/0014-unit-test-frame-client-on-host.md) (host-side unit tests),
 [story 0015](../done/0015-merge-frame-client-into-this-repo.md) (merge the frame client into this repo) and
-[story 0018](../doing/0018-fix-stack-buffer-in-read-text-file.md) (fix the 16 KB stack buffer in `read_text_file`), and
+[story 0018](../done/0018-fix-stack-buffer-in-read-text-file.md) (fix the 16 KB stack buffer in `read_text_file`), and
 before story 0013. See also the review of the client in
 [`inky-frame-photo-gallery-cpp/REVIEW.md`](../../inky-frame-photo-gallery-cpp/REVIEW.md).
 
