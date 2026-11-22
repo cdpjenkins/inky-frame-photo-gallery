@@ -112,6 +112,14 @@ These were not fixed by the rules above:
 - If the SD card cannot be mounted, the frame logs `Could not mount the SD card` and tries again next cycle (the
   response is downloaded to the SD card, so a cycle cannot work without it).
 
+## Fixed while checking on the device
+
+- **Uninitialised proxy settings**: `HttpConnection::do_request` set only the callbacks in lwIP's
+  `httpc_connection_t`, leaving `use_proxy`, `proxy_addr` and `proxy_port` with whatever was on the stack. With story
+  0018's stack painting that was `0xDEADBEEF`, so lwIP sent every request to a "proxy" at `222.173.190.239:48879`,
+  and every fetch timed out (`result 5`). The settings are now zero-initialised. This probably also explains earlier
+  unreliable networking.
+
 ## Device checks (by the admin, on the Inky Frame)
 
 Before building: add `SERVER_ADDRESS` (the backend's IP address) and `SERVER_PORT 3000` to the real
@@ -120,15 +128,23 @@ request the frame makes (e.g. `GET /instructions?after=0 200`).
 
 On USB power, watching the serial log:
 
-1. [ ] **First cycle, no N file**: the log shows `No /last_instruction.txt, so N is 0`, the backend logs
+1. [x] **First cycle, no N file**: the log shows `No /last_instruction.txt, so N is 0`, the backend logs
    `GET /instructions?after=0`, and the frame logs `Received instruction <seq>: <text>` for each instruction (e.g.
    add `SHOW /images/cat.jpg` and `sleep` on the admin page first).
+   Result (2026-11-22): passes, after fixing uninitialised proxy settings in `HttpConnection` (see below). The log
+   shows `HTTP request done: result 0, status 200`, `123 bytes downloaded`, then
+   `Received instruction 1: SHOW /images/Wedding_Day_Katie_and_Chris_319.jpg_scaled.jpg` and
+   `Received instruction 2: SHOW /images/Wedding_Day_Katie_and_Chris_267.jpg_scaled.jpg`, then
+   `Sleeping for 5 minutes`. The stack's deepest use was 1880 of 2048 bytes, leaving only 168 bytes.
 2. [ ] **No instructions**: with no instructions on the backend, no `Received instruction` line is logged.
 3. [ ] **Sleep and next cycle**: the log shows `Sleeping for 5 minutes`, and 5 minutes later
    `Still powered (USB), so restarting for the next cycle`; the next cycle asks for `/instructions?after=0` again
    (N does not change in this story).
-4. [ ] **Backend unreachable**: with the backend stopped, the log shows `Could not reach the backend`, then
+4. [x] **Backend unreachable**: with the backend stopped, the log shows `Could not reach the backend`, then
    `Sleeping for 5 minutes`.
+   Result (2026-11-22): seen by accident, with `SERVER_ADDRESS` set to an address where nothing listens
+   (`192.168.1.51`): the request timed out (`result 5, status 0`), the frame logged `Could not reach the backend`,
+   then `Sleeping for 5 minutes`, without hanging.
 5. [ ] **WiFi failure**: with a wrong WiFi password in `wifi_settings.h` (temporarily), the log shows
    `Could not connect to WiFi: ...`, then `Sleeping for 5 minutes`.
 6. [ ] **Screen**: the screen is left as it was in every cycle.
