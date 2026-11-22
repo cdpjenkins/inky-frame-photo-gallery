@@ -6,9 +6,9 @@ As a developer of the frame client,
 I want to build and run unit tests for its logic on my Mac, without the Pico SDK or the Inky Frame,
 so that stories 0016 and 0013 can be built test-first.
 
-Sliced out of [0013-frame-carries-out-show](0013-frame-carries-out-show.md) during its Example Mapping session.
+Sliced out of [0013-frame-carries-out-show](../ready/0013-frame-carries-out-show.md) during its Example Mapping session.
 
-Order: comes before [story 0016](0016-frame-fetches-instructions.md) and [story 0013](0013-frame-carries-out-show.md).
+Order: comes before [story 0016](../ready/0016-frame-fetches-instructions.md) and [story 0013](../ready/0013-frame-carries-out-show.md).
 
 The frame client is in [`inky-frame-photo-gallery-cpp/`](../../inky-frame-photo-gallery-cpp/). Today it has no tests,
 and all its logic is in `main.cpp`, mixed with calls to the Pico SDK and the Inky Frame hardware. Its firmware build
