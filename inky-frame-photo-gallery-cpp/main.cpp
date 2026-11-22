@@ -32,6 +32,8 @@ void http_get_to_file(const char *ip_addres, int port, const char *path, const c
 void filesystem_list(const char *path);
 void mount_sd_card_filesystem();
 void connect_wifi();
+void paint_stack();
+void report_stack_usage(const char *where);
 
 const bool USE_WIFI = false;
 const char* SERVER_IP = "192.168.1.51";
@@ -119,6 +121,8 @@ void draw_jpeg(std::string filename, int x, int y, int w, int h) {
 
 
 int photo_gallery_main() {
+    paint_stack();
+
     inky.init();
 
     stdio_init_all();
@@ -137,6 +141,7 @@ int photo_gallery_main() {
     }
 
     vector<string> files = split_by_newlines(read_text_file("/list.txt"));
+    report_stack_usage("after reading /list.txt");
 
     cout << "Found " << files.size() << " files" << endl;
 
@@ -162,7 +167,9 @@ int photo_gallery_main() {
 
             cout << "Updating screen... " << endl;
             inky.update();
-            cout << "Done updating screen" << endl << endl;
+            cout << "Done updating screen" << endl;
+            report_stack_usage("after drawing a photo");
+            cout << endl;
 
             sleep_ms(SLEEP_BETWEEN_PHOTOS);
         }
@@ -287,7 +294,9 @@ basic_string<char> read_text_file(const char *file_path) {
 
     const FSIZE_t LIST_MAX_SIZE = (1 << 14) - 1;
 
-    char buffer[LIST_MAX_SIZE + 1];
+    // Story 0018: static, not a local variable. Core 0's stack is only 2 KB, so a 16 KB local buffer here ran far past
+    // the end of the stack, silently overwriting other memory (including the top of the heap).
+    static char buffer[LIST_MAX_SIZE + 1];
 
     FIL list_file_handle;
     FRESULT rc = f_open(&list_file_handle, file_path, FA_OPEN_EXISTING | FA_READ);
@@ -313,6 +322,8 @@ basic_string<char> read_text_file(const char *file_path) {
     buffer[bytes_read] = '\0';
 
     f_close(&list_file_handle);
+
+    report_stack_usage("inside read_text_file");
 
     return string{buffer};
 }
@@ -347,4 +358,46 @@ void display_images_by_listing_directory() {
     }
     f_closedir(dir);
     cout << "Listing done!" << endl;
+}
+
+// Story 0018: measuring core 0's stack. The stack runs from __StackTop down to __StackBottom (2 KB; both are defined
+// by the Pico SDK's linker script).
+//
+// - paint_stack(), called once at start-up, fills the unused part of the stack with a known pattern.
+// - report_stack_usage() prints (a) how deep the stack has ever reached, from how much of the pattern has been
+//   overwritten, and (b) where the stack pointer is now. (b) is what shows an overflow: a large local variable puts
+//   the stack pointer below __StackBottom, where (a) cannot see it, because the overflowing data is written below the
+//   painted area rather than into it.
+extern "C" uint32_t __StackBottom;
+extern "C" uint32_t __StackTop;
+
+const uint32_t STACK_PAINT = 0xDEADBEEF;
+
+void paint_stack() {
+    uint32_t marker;                        // lives in this function's frame, near the current stack pointer
+    uint32_t *limit = &marker - 16;         // leave a margin below this frame unpainted
+    for (uint32_t *p = &__StackBottom; p < limit; p++) {
+        *p = STACK_PAINT;
+    }
+}
+
+void report_stack_usage(const char *where) {
+    const char *top = (const char *) &__StackTop;
+    const char *bottom = (const char *) &__StackBottom;
+
+    const uint32_t *p = &__StackBottom;
+    while (p < &__StackTop && *p == STACK_PAINT) {
+        p++;
+    }
+    int deepest = top - (const char *) p;
+
+    uint32_t marker;                        // its address is close to the current stack pointer
+    const char *sp = (const char *) &marker;
+
+    cout << "Stack " << where << ": deepest use " << deepest << " of " << (top - bottom) << " bytes; ";
+    if (sp >= bottom) {
+        cout << "stack pointer is " << (sp - bottom) << " bytes above the bottom of the stack" << endl;
+    } else {
+        cout << "OVERFLOW: stack pointer is " << (bottom - sp) << " bytes BELOW the bottom of the stack" << endl;
+    }
 }
