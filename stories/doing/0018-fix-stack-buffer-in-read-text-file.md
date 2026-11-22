@@ -34,3 +34,38 @@ it gets overwritten.
 
 The outcome decides the memory rules for stories 0016 and 0013: if confirmed, the rule is "no large local
 variables" rather than "no strings".
+
+## What was done
+
+- **Evidence without the device**: building the firmware with `gcc -fstack-usage` showed that `read_text_file`'s
+  stack frame was **17,016 bytes**, on a 2,048-byte stack. The next-largest frame was 656 bytes.
+- **The fix**: the buffer is now `static`, so its 16 KB is reserved once in static memory. `read_text_file`'s frame
+  is now 632 bytes, and the largest frame in `main.cpp` is 656 bytes.
+- **A diagnostic**, to confirm the fix on the device: `paint_stack()` fills the unused part of the stack with a known
+  pattern at start-up, and `report_stack_usage()` prints a line on the serial log such as
+
+  ```
+  Stack inside read_text_file: deepest use 900 of 2048 bytes; stack pointer is 1200 bytes above the bottom of the stack
+  ```
+
+  It reports inside `read_text_file`, after reading `/list.txt`, and after each photo is drawn. The stack pointer
+  position is what shows an overflow (`OVERFLOW: stack pointer is ... bytes BELOW the bottom of the stack`): an
+  oversized local variable's data is written below the stack, where the painted pattern cannot see it.
+
+## Device checks (by the admin, on the Inky Frame)
+
+The client still runs the slideshow from `/list.txt` on the SD card (`USE_WIFI` is `false`). It already returns a
+`std::string` from `read_text_file` and a `std::vector<std::string>` from `split_by_newlines`, and throws
+`std::runtime_error` when a file cannot be opened, so it exercises both things that froze the device before.
+
+1. [ ] **With the fix and `/list.txt` on the SD card**: the slideshow works, and every `Stack ...` line in the serial
+   log says the stack pointer is *above* the bottom of the stack, with the deepest use under 2048 bytes.
+2. [ ] **With the fix and no `/list.txt` on the SD card**: the serial log shows `runtime_error:` and
+   `Failed to open file for reading`, i.e. the exception is thrown, caught and reported rather than freezing the
+   frame. (The program then stops, as before.)
+3. [ ] **Optional, to see the old behaviour**: temporarily remove `static` from `buffer` in `read_text_file`, rebuild,
+   and run with `/list.txt` on the SD card. Expect the frame to freeze, or the log to show
+   `OVERFLOW: stack pointer is ... bytes BELOW the bottom of the stack`. Then put `static` back.
+
+If checks 1 and 2 pass, the hypothesis is confirmed: the memory rule for stories 0016 and 0013 is "no large local
+variables", not "no strings".
