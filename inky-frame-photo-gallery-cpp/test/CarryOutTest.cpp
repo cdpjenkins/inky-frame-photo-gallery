@@ -84,11 +84,22 @@ TEST_CASE("N becomes the highest sequence number even when it is not the last li
 }
 
 TEST_CASE("only exactly \"SHOW <path>\" is a SHOW: \"9 show /images/cat.jpg\", \"9 SHOW\", \"9 SHOW /images/my cat.jpg\""
-          " and \"9 SHOW  /images/cat.jpg\" are unknown instructions" * doctest::skip()) {
+          " and \"9 SHOW  /images/cat.jpg\" are unknown instructions") {
+    for (std::string text : {"show /images/cat.jpg", "SHOW", "SHOW /images/my cat.jpg", "SHOW  /images/cat.jpg"}) {
+        CAPTURE(text);
+        Outcome outcome = work_out("9 " + text);
+
+        CHECK(outcome.show_path == std::nullopt);
+        CHECK(outcome.ignored == Ignored{{9, text}});
+    }
 }
 
-TEST_CASE("N is written for /last_instruction.txt as a decimal number that reads back as the same N: 8 -> \"8\""
-          * doctest::skip()) {
+TEST_CASE("N is written for /last_instruction.txt as a decimal number that reads back as the same N: 8 -> \"8\"") {
+    char text[16];
+    REQUIRE(format_sequence_number(8, text, sizeof text));
+
+    CHECK(std::string(text) == "8");
+    CHECK(parse_sequence_number(text) == std::optional<uint32_t>(8));
 }
 
 TEST_SUITE("verification") {

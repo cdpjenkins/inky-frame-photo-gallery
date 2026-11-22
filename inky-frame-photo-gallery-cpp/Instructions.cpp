@@ -37,10 +37,20 @@ std::optional<Instruction> parse_instruction_line(std::string_view line) {
 }
 
 std::optional<std::string_view> show_path_of(std::string_view text) {
+    // As the simulator's /^SHOW (\S+)$/: "SHOW", one space, then a path that is not empty and has no whitespace.
     if (text.substr(0, 5) != "SHOW ") {
         return std::nullopt;
     }
-    return text.substr(5);
+    std::string_view path = text.substr(5);
+    if (path.empty()) {
+        return std::nullopt;
+    }
+    for (char c : path) {
+        if (is_whitespace(c)) {
+            return std::nullopt;
+        }
+    }
+    return path;
 }
 
 std::optional<uint32_t> highest_sequence_number(std::string_view response) {
@@ -63,7 +73,21 @@ std::optional<uint32_t> parse_sequence_number(std::string_view text) {
     return n;
 }
 
-bool format_instructions_path(uint32_t n, char *out, std::size_t size) {
-    int written = std::snprintf(out, size, "/instructions?after=%lu", static_cast<unsigned long>(n));
+namespace {
+
+// Writes `format`, with a sequence number in place of its one %lu, into `out` (of `size` bytes, including the
+// terminating '\0'). Returns false if it does not fit.
+bool write_with_number(const char *format, uint32_t n, char *out, std::size_t size) {
+    int written = std::snprintf(out, size, format, static_cast<unsigned long>(n));
     return written >= 0 && static_cast<std::size_t>(written) < size;
+}
+
+}
+
+bool format_sequence_number(uint32_t n, char *out, std::size_t size) {
+    return write_with_number("%lu", n, out, size);
+}
+
+bool format_instructions_path(uint32_t n, char *out, std::size_t size) {
+    return write_with_number("/instructions?after=%lu", n, out, size);
 }

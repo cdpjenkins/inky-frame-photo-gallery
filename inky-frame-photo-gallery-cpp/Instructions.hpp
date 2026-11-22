@@ -79,6 +79,11 @@ ResponsePlan plan_response(std::string_view response, F on_unknown) {
 // no number.
 std::optional<uint32_t> parse_sequence_number(std::string_view text);
 
+// Writes N as the contents of the file that holds it (story 0013, Rule 1): a decimal number, which
+// parse_sequence_number reads back. `out` is `size` bytes, including the terminating '\0'. Returns false if it does
+// not fit.
+bool format_sequence_number(uint32_t n, char *out, std::size_t size);
+
 // Writes the path that asks for the instructions after N, e.g. "/instructions?after=8", into `out` (of `size`
 // bytes, including the terminating '\0'). Returns false, and writes nothing usable, if it does not fit.
 bool format_instructions_path(uint32_t n, char *out, std::size_t size);
