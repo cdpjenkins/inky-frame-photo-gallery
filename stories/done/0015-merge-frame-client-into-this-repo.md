@@ -64,11 +64,14 @@ and one set of skills.
 - [x] The layout above is in place, and the backend's history is kept.
 - [x] From `backend-ts/`: `npm ci`, `npm run build`, `npm test` (all 143 tests pass) and `npm run build:simulator`
       work.
-- [ ] CI passes on GitHub for the restructured repo.
+- [x] CI passes on GitHub for the restructured repo.
 - [x] `inky-frame-photo-gallery-cpp/wifi_settings.h` is ignored by git.
 - [x] `AGENTS.md`, the root `README.md` and the story links describe the new layout.
 - [x] There is one licence file, `LICENCE` (MIT), at the root, and `backend-ts/package.json` says `"license": "MIT"`.
-- [ ] The admin builds the C++ client by hand from `inky-frame-photo-gallery-cpp/` (the admin's responsibility).
+- [x] The admin builds the C++ client by hand from `inky-frame-photo-gallery-cpp/` (the admin's responsibility).
+      Building needed one change caused by the move: the default `PIMORONI_PICO_PATH` in `pimoroni_pico_import.cmake`
+      gained one more `../`, because the client is now one directory deeper. The admin will test the client on the
+      frame later.
 
 ## Out of scope (the admin does these later)
 
