@@ -1,6 +1,7 @@
 #include <cstring>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <string_view>
 using namespace std;
@@ -358,8 +359,10 @@ void filesystem_list(const char *path) {
 
 HttpResult http_get_to_file(const char *ip_addres, int port, const char *path, const char *file_path) {
     cout << "Downloading " << path << " to " << file_path << "... ";
-    HttpConnection connection(ip_addres, port, path, file_path);
-    return connection.do_request();
+    // On the heap, not the stack: an HttpConnection holds an open FatFs FIL (about 600 bytes in all), and lwIP and the
+    // WiFi driver make deep calls below this frame, so on the 2 KB stack it left too little room (story 0016).
+    unique_ptr<HttpConnection> connection(new HttpConnection(ip_addres, port, path, file_path));
+    return connection->do_request();
 }
 
 // Reads a whole text file into a static buffer, and points `contents` at it. `contents` stays valid until the next
@@ -372,7 +375,8 @@ ReadResult read_text_file(const char *file_path, string_view &contents) {
     // the end of the stack, silently overwriting other memory (including the top of the heap).
     static char buffer[TEXT_FILE_MAX_SIZE + 1];
 
-    FIL file_handle;
+    // Static too, to keep the stack small (story 0016): a FatFs FIL is about 560 bytes.
+    static FIL file_handle;
     FRESULT rc = f_open(&file_handle, file_path, FA_OPEN_EXISTING | FA_READ);
     if (rc == FR_NO_FILE || rc == FR_NO_PATH) {
         cout << "not found" << endl;

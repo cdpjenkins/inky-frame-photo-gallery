@@ -119,6 +119,10 @@ These were not fixed by the rules above:
   0018's stack painting that was `0xDEADBEEF`, so lwIP sent every request to a "proxy" at `222.173.190.239:48879`,
   and every fetch timed out (`result 5`). The settings are now zero-initialised. This probably also explains earlier
   unreliable networking.
+- **Stack headroom**: with fetching working, the deepest stack use was 1880 of 2048 bytes. The download's
+  `HttpConnection` (which holds an open FatFs `FIL`) is now created on the heap for the duration of the download, and
+  `read_text_file`'s `FIL` is now `static`. With `gcc -fstack-usage`, `http_get_to_file`'s frame went from 664 to 40
+  bytes, and `read_text_file`'s from 632 to 48.
 
 ## Device checks (by the admin, on the Inky Frame)
 
