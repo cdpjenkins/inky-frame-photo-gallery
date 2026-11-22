@@ -42,6 +42,30 @@ void for_each_instruction(std::string_view response, F f) {
     }
 }
 
+// What an /instructions response asks the frame to do (story 0013).
+struct ResponsePlan {
+    std::optional<uint32_t> new_n;              // the new N; none means N is unchanged
+    std::optional<std::string_view> show_path;  // the photo to show; points into the response
+};
+
+// A SHOW instruction is "SHOW <path>", as in the Photo Frame Simulator (story 0006): gives the path, or nothing if
+// the text is not a SHOW.
+std::optional<std::string_view> show_path_of(std::string_view text);
+
+// Works out what an /instructions response asks the frame to do, calling on_unknown(instruction) for each
+// instruction the frame does not know.
+template<typename F>
+ResponsePlan plan_response(std::string_view response, F on_unknown) {
+    ResponsePlan plan;
+    for_each_instruction(response, [&](const Instruction &instruction) {
+        plan.new_n = instruction.sequence_number;
+        if (std::optional<std::string_view> path = show_path_of(instruction.text)) {
+            plan.show_path = path;
+        }
+    });
+    return plan;
+}
+
 // Parses the contents of the file holding N, the sequence number of the last instruction the frame consumed
 // (story 0016, Rule 2): a decimal number, optionally followed by whitespace such as a newline. Anything else gives
 // no number.

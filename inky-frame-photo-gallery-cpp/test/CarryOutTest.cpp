@@ -20,10 +20,52 @@
 
 #include "doctest.h"
 
-TEST_CASE("an empty response leaves N unchanged, asks for no SHOW and has nothing to ignore" * doctest::skip()) {
+#include "Instructions.hpp"
+
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace {
+
+using Ignored = std::vector<std::pair<uint32_t, std::string>>;
+
+// What a response asks the frame to do, copied into owning types so the tests can compare them.
+struct Outcome {
+    std::optional<uint32_t> new_n;
+    std::optional<std::string> show_path;
+    Ignored ignored;
+};
+
+Outcome work_out(std::string_view response) {
+    Outcome outcome;
+    ResponsePlan plan = plan_response(response, [&](const Instruction &instruction) {
+        outcome.ignored.emplace_back(instruction.sequence_number, std::string(instruction.text));
+    });
+    outcome.new_n = plan.new_n;
+    if (plan.show_path) {
+        outcome.show_path = std::string(*plan.show_path);
+    }
+    return outcome;
 }
 
-TEST_CASE("response \"7 SHOW /images/cat.jpg\" -> N becomes 7 and the SHOW is /images/cat.jpg" * doctest::skip()) {
+}
+
+TEST_CASE("an empty response leaves N unchanged, asks for no SHOW and has nothing to ignore") {
+    Outcome outcome = work_out("");
+
+    CHECK(outcome.new_n == std::nullopt);
+    CHECK(outcome.show_path == std::nullopt);
+    CHECK(outcome.ignored.empty());
+}
+
+TEST_CASE("response \"7 SHOW /images/cat.jpg\" -> N becomes 7 and the SHOW is /images/cat.jpg") {
+    Outcome outcome = work_out("7 SHOW /images/cat.jpg");
+
+    CHECK(outcome.new_n == std::optional<uint32_t>(7));
+    CHECK(outcome.show_path == std::optional<std::string>("/images/cat.jpg"));
+    CHECK(outcome.ignored.empty());
 }
 
 TEST_CASE("response \"8 sleep\" -> N becomes 8, no SHOW, and \"8 sleep\" is ignored as unknown" * doctest::skip()) {

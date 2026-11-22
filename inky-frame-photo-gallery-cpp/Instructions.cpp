@@ -36,6 +36,13 @@ std::optional<Instruction> parse_instruction_line(std::string_view line) {
     return Instruction{*sequence_number, line};
 }
 
+std::optional<std::string_view> show_path_of(std::string_view text) {
+    if (text.substr(0, 5) != "SHOW ") {
+        return std::nullopt;
+    }
+    return text.substr(5);
+}
+
 std::optional<uint32_t> parse_sequence_number(std::string_view text) {
     std::optional<uint32_t> n = take_number(text);
     for (char c : text) {
