@@ -1,8 +1,8 @@
 #include <cstring>
+#include <exception>
 #include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <vector>
+#include <string>
+#include <string_view>
 using namespace std;
 
 #include "libraries/inky_frame/inky_frame.hpp"
@@ -11,11 +11,13 @@ using namespace pimoroni;
 #include "JPEGDEC.h"
 
 #include "pico/cyw43_arch.h"
+#include "hardware/watchdog.h"
 #include "lwip/tcp.h"
 #include "lwip/apps/http_client.h"
 
 #include "wifi_settings.h"
 #include "HttpConnection.hpp"
+#include "Instructions.hpp"
 
 InkyFrame inky;
 
@@ -26,19 +28,35 @@ struct {
   int x, y, w, h;
 } jpeg_decode_options;
 
-vector<string> split_by_newlines(string &&content);
-basic_string<char> read_text_file(const char *file_path);
-void http_get_to_file(const char *ip_addres, int port, const char *path, const char *file_path);
+enum class ReadResult { OK, NOT_FOUND, TOO_LARGE, ERROR };
+
+ReadResult read_text_file(const char *file_path, string_view &contents);
+HttpResult http_get_to_file(const char *ip_addres, int port, const char *path, const char *file_path);
 void filesystem_list(const char *path);
-void mount_sd_card_filesystem();
-void connect_wifi();
+bool mount_sd_card_filesystem();
+bool connect_wifi();
+uint32_t read_n();
+void run_cycle();
+void sleep_until_next_cycle();
 void paint_stack();
 void report_stack_usage(const char *where);
 
-const bool USE_WIFI = false;
-const char* SERVER_IP = "192.168.1.51";
+// Story 0016. The frame runs one cycle each time it wakes up: connect, fetch the instructions after N, log them, then
+// sleep for MINUTES_BETWEEN_CYCLES.
+constexpr int MINUTES_BETWEEN_CYCLES = 5;
 
-constexpr int SLEEP_BETWEEN_PHOTOS = 20 * 60 * 1000;
+// N, the sequence number of the last instruction the frame consumed, as a decimal number. No file means 0. (Story
+// 0016 only reads it; story 0013 will update it.)
+const char *N_FILE_PATH = "/last_instruction.txt";
+
+// Where the /instructions response is downloaded to, before it is read.
+const char *INSTRUCTIONS_FILE_PATH = "/instructions.txt";
+
+// The largest text file read_text_file can read (its buffer is static: story 0018).
+constexpr FSIZE_t TEXT_FILE_MAX_SIZE = (1 << 14) - 1;
+
+// The Inky Frame's power-hold pin (InkyFrame::HOLD_VSYS_EN, which is not public).
+constexpr uint HOLD_VSYS_EN_PIN = 2;
 
 void *jpegdec_open_callback(const char *filename, int32_t *size) {
     FIL *fil = new FIL;
@@ -120,7 +138,7 @@ void draw_jpeg(std::string filename, int x, int y, int w, int h) {
 
 
 
-int photo_gallery_main() {
+int main() {
     paint_stack();
 
     inky.init();
@@ -132,65 +150,114 @@ int photo_gallery_main() {
     cout << "Welcome to the Photo Gallery!" << endl;
     cout << "*****************************" << endl << endl << endl;
 
-    mount_sd_card_filesystem();
-
-    connect_wifi();
-
-    if (USE_WIFI) {
-        // http_get_to_file(SERVER_IP, 8000, "/list.txt", "/list.txt");
-    }
-
-    vector<string> files = split_by_newlines(read_text_file("/list.txt"));
-    report_stack_usage("after reading /list.txt");
-
-    cout << "Found " << files.size() << " files" << endl;
-
-    cout << "About to start drawing shizzle " << endl;
-
-    while (true) {
-        for (const auto &jpeg_filename: files) {
-            if (USE_WIFI) {
-                inky.led(pimoroni::InkyFrame::LED_CONNECTION, 100);
-                string jpeg_path = "/" + jpeg_filename;
-                string local_path = "/" + jpeg_filename;
-                http_get_to_file(SERVER_IP, 8000, jpeg_path.c_str(), local_path.c_str());
-                inky.led(pimoroni::InkyFrame::LED_CONNECTION, 0);
-            }
-
-            inky.led(pimoroni::InkyFrame::LED_ACTIVITY, 100);
-            cout << "Drawing JPEG: " << jpeg_filename << "... " << endl;
-            inky.set_pen(0);
-            inky.clear();
-            draw_jpeg(jpeg_filename, 0, 0, 600, 448);
-            cout << "Done drawing JPEG" << endl;
-            inky.led(pimoroni::InkyFrame::LED_ACTIVITY, 0);
-
-            cout << "Updating screen... " << endl;
-            inky.update();
-            cout << "Done updating screen" << endl;
-            report_stack_usage("after drawing a photo");
-            cout << endl;
-
-            sleep_ms(SLEEP_BETWEEN_PHOTOS);
-        }
-        cout << "All images drawn; going back to the start!" << endl;
-    }
-
-    // Possibly isn't much point doing this, given that this line will never be reached...
-    cyw43_arch_deinit();
-}
-
-int main() {
+    // Errors are returned, not thrown (story 0016). This catch is only a safety net, so that the frame still sleeps
+    // and tries again if a library throws.
     try {
-        photo_gallery_main();
-    } catch (runtime_error &e) {
-        cout << endl << endl << endl;
-        cout << "runtime_error:" << endl;
-        cout << e.what() << endl;
+        run_cycle();
+    } catch (exception &e) {
+        cout << "Unexpected exception: " << e.what() << endl;
+    }
+
+    report_stack_usage("at the end of the cycle");
+    sleep_until_next_cycle();
+}
+
+// Story 0016: one cycle. Every failure is logged, and the frame then sleeps and tries again in the next cycle.
+void run_cycle() {
+    if (!mount_sd_card_filesystem()) {
+        return;
+    }
+
+    if (!connect_wifi()) {
+        return;
+    }
+
+    uint32_t n = read_n();
+
+    char path[PATH_MAX_LENGTH];
+    if (!format_instructions_path(n, path, sizeof path)) {
+        cout << "Could not make the path for N = " << n << endl;
+        return;
+    }
+
+    inky.led(pimoroni::InkyFrame::LED_CONNECTION, 100);
+    HttpResult result = http_get_to_file(SERVER_ADDRESS, SERVER_PORT, path, INSTRUCTIONS_FILE_PATH);
+    inky.led(pimoroni::InkyFrame::LED_CONNECTION, 0);
+
+    if (result.outcome == HttpResult::UNREACHABLE) {
+        cout << "Could not reach the backend" << endl;
+        return;
+    }
+    if (result.outcome == HttpResult::FILE_ERROR) {
+        cout << "Could not save the instructions to " << INSTRUCTIONS_FILE_PATH << endl;
+        return;
+    }
+    if (result.status != 200) {
+        cout << "Could not fetch instructions (" << result.status << ")" << endl;
+        return;
+    }
+
+    string_view response;
+    switch (read_text_file(INSTRUCTIONS_FILE_PATH, response)) {
+        case ReadResult::OK:
+            break;
+        case ReadResult::TOO_LARGE:
+            // Responses too big for the buffer are out of scope for story 0016 (see story 0002).
+            cout << "Could not read the instructions: the response is larger than " << TEXT_FILE_MAX_SIZE
+                 << " bytes" << endl;
+            return;
+        default:
+            cout << "Could not read the instructions from " << INSTRUCTIONS_FILE_PATH << endl;
+            return;
+    }
+
+    for_each_instruction(response, [](const Instruction &instruction) {
+        cout << "Received instruction " << instruction.sequence_number << ": " << instruction.text << endl;
+    });
+}
+
+// Story 0016, Rule 2: N comes from N_FILE_PATH on the SD card; no file means 0.
+uint32_t read_n() {
+    string_view contents;
+    switch (read_text_file(N_FILE_PATH, contents)) {
+        case ReadResult::NOT_FOUND:
+            cout << "No " << N_FILE_PATH << ", so N is 0" << endl;
+            return 0;
+        case ReadResult::OK:
+            if (optional<uint32_t> n = parse_sequence_number(contents)) {
+                cout << "N is " << *n << endl;
+                return *n;
+            }
+            cout << N_FILE_PATH << " does not hold a sequence number, so N is 0" << endl;
+            return 0;
+        default:
+            cout << "Could not read " << N_FILE_PATH << ", so N is 0" << endl;
+            return 0;
     }
 }
 
-void connect_wifi() {
+// Story 0016, Rule 1: sleep for MINUTES_BETWEEN_CYCLES, then start the next cycle from scratch.
+//
+// This does what inky.sleep(MINUTES_BETWEEN_CYCLES) does: set the RTC to wake the frame, then release the power-hold
+// pin. On battery, the power goes off at that point, and the RTC powers the frame on again later, which runs main()
+// from the start. But inky.sleep() then loops forever, so on USB power (where the power cannot go off) the frame would
+// never run another cycle. So instead, if the frame is still running, wait, then reboot: also a fresh start.
+void sleep_until_next_cycle() {
+    cout << "Sleeping for " << MINUTES_BETWEEN_CYCLES << " minutes" << endl;
+
+    inky.rtc.set_timer(MINUTES_BETWEEN_CYCLES, PCF85063A::TIMER_TICK_1_OVER_60HZ);
+    inky.rtc.enable_timer_interrupt(true, false);
+    gpio_put(HOLD_VSYS_EN_PIN, false);
+
+    // Still running: on USB power.
+    sleep_ms(MINUTES_BETWEEN_CYCLES * 60 * 1000);
+    cout << "Still powered (USB), so restarting for the next cycle" << endl;
+    watchdog_reboot(0, 0, 0);
+    while (true) {}
+}
+
+// Story 0016, Rule 4: if WiFi fails to connect, the error is logged and false is returned.
+bool connect_wifi() {
     int rc;
 
     cout << "Setting up WiFI" << endl;
@@ -198,7 +265,8 @@ void connect_wifi() {
     rc = cyw43_arch_init_with_country(CYW43_COUNTRY_UK);
     if (rc) {
         cout << "Return code: " << rc << endl;
-        throw runtime_error("Failed to init CYW43");
+        cout << "Could not connect to WiFi: failed to initialise CYW43" << endl;
+        return false;
     }
     cout << "Initialising CYW43 done." << endl;
 
@@ -212,8 +280,8 @@ void connect_wifi() {
 
     rc = cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK);
     if (rc) {
-        cout << "Failed to start WiFi connection, return code: " << rc << endl;
-        throw runtime_error("Failed to start WiFi connection");
+        cout << "Could not connect to WiFi: failed to start the connection, return code: " << rc << endl;
+        return false;
     }
 
     while (elapsed_ms < CONNECT_TIMEOUT_MS) {
@@ -235,13 +303,16 @@ void connect_wifi() {
                 goto connected;
             case CYW43_LINK_FAIL:
                 cout << "connection failed" << endl;
-                throw runtime_error("WiFi connection failed");
+                cout << "Could not connect to WiFi: connection failed" << endl;
+                return false;
             case CYW43_LINK_NONET:
                 cout << "network not found" << endl;
-                throw runtime_error("WiFi network not found");
+                cout << "Could not connect to WiFi: network not found" << endl;
+                return false;
             case CYW43_LINK_BADAUTH:
                 cout << "bad authentication" << endl;
-                throw runtime_error("WiFi authentication failed");
+                cout << "Could not connect to WiFi: bad authentication" << endl;
+                return false;
             default:
                 cout << "unknown (" << status << ")" << endl;
         }
@@ -250,24 +321,27 @@ void connect_wifi() {
         elapsed_ms += CHECK_INTERVAL_MS;
     }
 
-    cout << "WiFi connection timed out after " << CONNECT_TIMEOUT_MS << "ms" << endl;
-    throw runtime_error("WiFi connection timeout");
+    cout << "Could not connect to WiFi: timed out after " << CONNECT_TIMEOUT_MS << "ms" << endl;
+    return false;
 
 connected:
     cout << "IP address: " << ip4addr_ntoa(netif_ip_addr4(netif_default)) << endl;
     cout << "Netmask:    " << ip4addr_ntoa(netif_ip_netmask4(netif_default)) << endl;
     cout << "Gateway:    " << ip4addr_ntoa(netif_ip_gw4(netif_default)) << endl;
     cout << "Hostname:   " << netif_get_hostname(netif_default) << endl;
+    return true;
 }
 
-void mount_sd_card_filesystem() {
+bool mount_sd_card_filesystem() {
     cout << "Mounting SD card filesystem... ";
     FRESULT fr = f_mount(&fs, "", 1);
     if (fr != FR_OK) {
         cout << "fr: " << fr << endl;
-        throw runtime_error("Failed to mount SD card filesystem");
+        cout << "Could not mount the SD card" << endl;
+        return false;
     }
     cout << "Filesystem mounted!" << endl;
+    return true;
 }
 
 void filesystem_list(const char *path) {
@@ -282,82 +356,53 @@ void filesystem_list(const char *path) {
     cout << "Listing done!" << endl;
 }
 
-void http_get_to_file(const char *ip_addres, int port, const char *path, const char *file_path) {
+HttpResult http_get_to_file(const char *ip_addres, int port, const char *path, const char *file_path) {
     cout << "Downloading " << path << " to " << file_path << "... ";
     HttpConnection connection(ip_addres, port, path, file_path);
-    connection.do_request();
+    return connection.do_request();
 }
 
-basic_string<char> read_text_file(const char *file_path) {
+// Reads a whole text file into a static buffer, and points `contents` at it. `contents` stays valid until the next
+// call. No exceptions (story 0016): the result says what went wrong.
+ReadResult read_text_file(const char *file_path, string_view &contents) {
 
     cout << "Reading " << file_path << "... ";
 
-    const FSIZE_t LIST_MAX_SIZE = (1 << 14) - 1;
-
     // Story 0018: static, not a local variable. Core 0's stack is only 2 KB, so a 16 KB local buffer here ran far past
     // the end of the stack, silently overwriting other memory (including the top of the heap).
-    static char buffer[LIST_MAX_SIZE + 1];
+    static char buffer[TEXT_FILE_MAX_SIZE + 1];
 
-    FIL list_file_handle;
-    FRESULT rc = f_open(&list_file_handle, file_path, FA_OPEN_EXISTING | FA_READ);
+    FIL file_handle;
+    FRESULT rc = f_open(&file_handle, file_path, FA_OPEN_EXISTING | FA_READ);
+    if (rc == FR_NO_FILE || rc == FR_NO_PATH) {
+        cout << "not found" << endl;
+        return ReadResult::NOT_FOUND;
+    }
     if (rc) {
         cout << "rc: " << rc << endl;
-        throw runtime_error("Failed to open file for reading");
+        return ReadResult::ERROR;
     }
 
-    FSIZE_t list_txt_size = f_size(&list_file_handle);
-    cout << "Size of list.txt is " << list_txt_size << endl;
-    if (list_txt_size > LIST_MAX_SIZE) {
-
-        cout << "Size of list.txt is too large: " << list_txt_size << " bytes" << endl;
-        throw runtime_error("Size of list.txt is too large");
+    FSIZE_t file_size = f_size(&file_handle);
+    cout << "size " << file_size << " bytes" << endl;
+    if (file_size > TEXT_FILE_MAX_SIZE) {
+        f_close(&file_handle);
+        return ReadResult::TOO_LARGE;
     }
 
     UINT bytes_read;
-    FRESULT fresult = f_read(&list_file_handle, buffer, list_txt_size, &bytes_read);
+    FRESULT fresult = f_read(&file_handle, buffer, file_size, &bytes_read);
+    f_close(&file_handle);
     if (fresult != FR_OK) {
-        cout << "Failed to read from " << file_path << ": " << fresult;
-        throw runtime_error("Failed to read from file");
+        cout << "Failed to read from " << file_path << ": " << fresult << endl;
+        return ReadResult::ERROR;
     }
     buffer[bytes_read] = '\0';
 
-    f_close(&list_file_handle);
-
     report_stack_usage("inside read_text_file");
 
-    return string{buffer};
-}
-
-vector<string> split_by_newlines(string &&content) {
-    stringstream file_list{content};
-    vector<string> files;
-    string line;
-    while (getline(file_list, line, '\n')) {
-        files.push_back(line);
-    }
-    return files;
-}
-
-void display_images_by_listing_directory() {
-    cout << "Listing sd card contents.." << endl;
-    FILINFO file;
-    auto dir = new DIR();
-    f_opendir(dir, "/");
-    while(f_readdir(dir, &file) == FR_OK && file.fname[0]) {
-        cout << file.fname << " " << file.fsize << endl;
-
-        cout << "Drawing JPEG..." << endl;
-        inky.clear();
-        draw_jpeg(file.fname, 0, 0, 600, 448);
-        cout << "JPEG done" << endl;
-
-        cout << "Updating screen..." << endl;
-        inky.update();
-        cout << "Updated screen" << endl << endl;
-        sleep_ms(600000);
-    }
-    f_closedir(dir);
-    cout << "Listing done!" << endl;
+    contents = string_view(buffer, bytes_read);
+    return ReadResult::OK;
 }
 
 // Story 0018: measuring core 0's stack. The stack runs from __StackTop down to __StackBottom (2 KB; both are defined

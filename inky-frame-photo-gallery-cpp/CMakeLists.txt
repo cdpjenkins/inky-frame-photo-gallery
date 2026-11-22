@@ -19,7 +19,8 @@ pico_sdk_init()
 # Add your source files
 add_executable(${NAME}
         main.cpp
-        HttpConnection.cpp)
+        HttpConnection.cpp
+        Instructions.cpp)
 
 # Include required libraries
 # This assumes `pimoroni-pico` is stored alongside your project
@@ -50,6 +51,7 @@ target_link_libraries(
     cyw43_driver_picow
     pico_cyw43_arch_lwip_threadsafe_background
     pico_lwip_http
+    hardware_watchdog
     )
 
 target_include_directories(${NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR} )

@@ -15,9 +15,13 @@ project(inky_frame_photo_gallery_host_tests CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# The portable source files under test, from the directory above, and their tests.
 add_executable(host_tests
         test.cpp
-        HarnessTest.cpp)
+        HarnessTest.cpp
+        InstructionsTest.cpp
+        ../Instructions.cpp)
+target_include_directories(host_tests PRIVATE ..)
 
 enable_testing()
 add_test(NAME host_tests COMMAND host_tests)

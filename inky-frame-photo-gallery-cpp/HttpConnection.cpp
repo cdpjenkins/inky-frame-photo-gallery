@@ -34,7 +34,10 @@ err_t http_body_callback(void *arg, struct tcp_pcb *conn, struct pbuf *p, err_t 
 
 void HttpConnection::http_result_received(httpc_result_t httpc_result, u32_t rx_content_len, u32_t srv_res, err_t err) {
     f_close(&file_handle);
+    file_open = false;
 
+    result = httpc_result;
+    status = srv_res;
     completed = true;
 }
 
@@ -43,14 +46,6 @@ err_t HttpConnection::http_headers_received(httpc_state_t *connection, pbuf *hdr
 }
 
 err_t HttpConnection::http_body_received(tcp_pcb *conn, pbuf *p, err_t err) {
-    u16_t size = p->tot_len;
-
-    if (size >= BUFFER_CAPACITY) {
-        std::cout << "Oh oh, we've exhausted the size of the buffer!" << std::endl;
-        std::cout << "size: " << size << " BUFFER_CAPACITY: " << BUFFER_CAPACITY << std::endl;
-        return ERR_MEM;
-    }
-
     for (pbuf* this_pbuf = p; this_pbuf != nullptr; this_pbuf = this_pbuf->next) {
         UINT bw;
         FRESULT res =f_write(&file_handle, this_pbuf->payload, this_pbuf->len, &bw);
@@ -67,7 +62,11 @@ err_t HttpConnection::http_body_received(tcp_pcb *conn, pbuf *p, err_t err) {
     return ERR_OK;
 }
 
-void HttpConnection::do_request() {
+HttpResult HttpConnection::do_request() {
+    if (!file_open) {
+        return HttpResult{HttpResult::FILE_ERROR, 0};
+    }
+
     cyw43_arch_lwip_begin();
 
     std::cout << "Doing HTTP request." << std::endl;
@@ -90,6 +89,15 @@ void HttpConnection::do_request() {
     std::cout << "Called httpc_get_file(), returned " << (int)err << std::endl;
     cyw43_arch_lwip_end();
 
+    // If the request could not even be started, lwIP never calls back, so do not wait for it.
+    if (err != ERR_OK) {
+        f_close(&file_handle);
+        file_open = false;
+        return HttpResult{HttpResult::UNREACHABLE, 0};
+    }
+
+    // lwIP calls back when the request finishes, including when it fails or times out (after 15 seconds without
+    // traffic), so this loop ends.
     bool http_thang_done = false;
     while (!http_thang_done) {
         cyw43_arch_lwip_begin();
@@ -99,16 +107,20 @@ void HttpConnection::do_request() {
         cyw43_arch_lwip_end();
     }
 
-    std::cout << "HTTP request done" << std::endl;
+    std::cout << "HTTP request done: result " << (int) result << ", status " << status << std::endl;
     std::cout << bytes_downloaded << " bytes downloaded" << std::endl;
+
+    if (result == HTTPC_RESULT_OK) {
+        return HttpResult{HttpResult::COMPLETED, status};
+    }
+    return HttpResult{HttpResult::UNREACHABLE, 0};
 }
 
 HttpConnection::HttpConnection(const char *ip_address_param,
                                int port,
                                const char *path,
                                const char *filename)
-        : port(port),
-          file_handle(file_handle)
+        : port(port)
 {
     // I'm not quite clear why we need to do all this. I'd rather just use std::strings but, for some reason, the HTTP
     // call is not sent if we do use strings at this point. Or if we use define ip_address and path as char arrays in
@@ -132,14 +144,19 @@ HttpConnection::HttpConnection(const char *ip_address_param,
 
     std::cout << "About to create file handle" << std::endl;
     std::cout << "About to open file" << std::endl;
+    // No exceptions (story 0016): if the file cannot be opened, do_request() reports FILE_ERROR.
     if (f_open(&file_handle, filename, FA_CREATE_ALWAYS | FA_WRITE)) {
         std::cout << "ERROR: failed to open " << filename << std::endl;
-        throw std::runtime_error("Failed to open file");
+        return;
     }
+    file_open = true;
     std::cout << "File is open" << std::endl;
 }
 
 HttpConnection::~HttpConnection() {
+    if (file_open) {
+        f_close(&file_handle);
+    }
     delete[] this->filename;
     delete[] this->path;
     delete[] this->ip_address;
