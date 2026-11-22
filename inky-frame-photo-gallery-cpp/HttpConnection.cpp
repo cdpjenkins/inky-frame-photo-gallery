@@ -72,7 +72,9 @@ HttpResult HttpConnection::do_request() {
     std::cout << "Doing HTTP request." << std::endl;
 
     completed = false;
-    httpc_connection_t settings;
+    // Zero-initialised, so that use_proxy is 0. Left uninitialised, use_proxy, proxy_addr and proxy_port held whatever
+    // was on the stack, and lwIP could send the request to a "proxy" at a garbage address instead of to the server.
+    httpc_connection_t settings = {};
     settings.result_fn = http_result_callback;
     settings.headers_done_fn = http_headers_callback;
 
