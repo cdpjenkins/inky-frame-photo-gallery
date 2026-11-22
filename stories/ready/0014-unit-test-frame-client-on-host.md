@@ -67,6 +67,48 @@ Logic is moved into tested, portable code by later stories.
 - The trivial test temporarily changed to fail -> CTest reports the failure and exits non-zero (checked by hand, not
   committed)
 
+## Test list
+
+This story builds the test harness itself, so there is no test mechanism to write inactive tests in yet. The tests
+are acceptance checks instead: each is a command, run from `inky-frame-photo-gallery-cpp/` unless it says otherwise,
+with its exact expected result. An unticked box is an inactive test; tick each one when it has been made to pass.
+Driving checks come first, in order; verification checks are expected to pass once the driving checks they name do.
+
+The Pico SDK and Pimoroni library paths are set in the developer's environment (`PICO_SDK_PATH`,
+`PIMORONI_PICO_PATH`), so checks that prove the host build does not need them unset both.
+
+### Driving checks
+
+1. [ ] **Configures without the Pico SDK or Pimoroni libraries** (Rule 2):
+   `env -u PICO_SDK_PATH -u PIMORONI_PICO_PATH cmake -S test -B build-host` -> exits 0.
+2. [ ] **Builds the host test executable** (Rules 1 and 2):
+   `env -u PICO_SDK_PATH -u PIMORONI_PICO_PATH cmake --build build-host` -> exits 0.
+3. [ ] **CTest runs one passing test** (Rules 2 and 4):
+   `ctest --test-dir build-host --output-on-failure` -> exits 0 and reports
+   `100% tests passed, 0 tests failed out of 1`.
+4. [ ] **Builds as C++17** (Rule 2): `test/CMakeLists.txt` sets `CMAKE_CXX_STANDARD` to `17`
+   (`grep -n "CMAKE_CXX_STANDARD 17" test/CMakeLists.txt` -> one match).
+5. [ ] **`build-host/` is ignored** (Rule 3): after checks 1-3, `git status --short` -> shows nothing for
+   `build-host/`.
+6. [ ] **The commands are documented** (Rule 3): `AGENTS.md` and `inky-frame-photo-gallery-cpp/README.md` each give the
+   three commands of Rule 3, and `AGENTS.md` no longer says the client has "no host-side tests yet (story 0014)".
+
+### Verification checks
+
+7. [ ] **doctest is the 2.4.12 release** (Rule 1; relies on check 2):
+   `grep -n 'DOCTEST_VERSION_STR "2.4.12"' test/doctest.h` -> one match.
+8. [ ] **The runner's `main` comes from doctest** (Rule 1; relies on check 2):
+   `grep -n DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN test/test.cpp` -> one match.
+9. [ ] **The host build uses no Pico SDK or Pimoroni code** (Rule 2; relies on checks 1-2):
+   `grep -n -i -E 'pico|pimoroni' test/CMakeLists.txt` -> no matches.
+10. [ ] **A failing test is visible** (Rule 4; relies on check 3; by hand, not committed): temporarily change the
+    trivial test to fail, rebuild and run `ctest --test-dir build-host --output-on-failure` -> exits non-zero and
+    reports `0% tests passed, 1 tests failed out of 1`; then undo the change.
+11. [ ] **Works on a fresh checkout** (Rule 3; relies on checks 1-5): in a fresh clone of the repo, the three commands
+    of Rule 3, run from `inky-frame-photo-gallery-cpp/` -> all exit 0 and CTest reports 1 test passed.
+12. [ ] **The firmware build is unchanged** (Rule 2; relies on all of the above): `git diff 3d73cad -- CMakeLists.txt`
+    -> no changes; the admin builds the firmware by hand as before.
+
 ## Questions (red)
 
 No open questions - all ambiguities were resolved.
