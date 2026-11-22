@@ -152,7 +152,9 @@ On USB power, watching the serial log:
 5. [ ] **WiFi failure**: with a wrong WiFi password in `wifi_settings.h` (temporarily), the log shows
    `Could not connect to WiFi: ...`, then `Sleeping for 5 minutes`.
 6. [ ] **Screen**: the screen is left as it was in every cycle.
-7. [ ] **Stack**: every `Stack ...` line says the stack pointer is above the bottom of the stack.
+7. [x] **Stack**: every `Stack ...` line says the stack pointer is above the bottom of the stack.
+   Result (2026-11-22), after taking `HttpConnection` and `read_text_file`'s `FIL` off the stack: the deepest use
+   fell from 1880 to 1328 of 2048 bytes (720 bytes left), and the fetch still logs both instructions.
 
 On battery:
 
