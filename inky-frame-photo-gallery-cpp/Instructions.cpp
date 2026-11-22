@@ -43,6 +43,16 @@ std::optional<std::string_view> show_path_of(std::string_view text) {
     return text.substr(5);
 }
 
+std::optional<uint32_t> highest_sequence_number(std::string_view response) {
+    std::optional<uint32_t> highest;
+    for_each_instruction(response, [&](const Instruction &instruction) {
+        if (!highest || instruction.sequence_number > *highest) {
+            highest = instruction.sequence_number;
+        }
+    });
+    return highest;
+}
+
 std::optional<uint32_t> parse_sequence_number(std::string_view text) {
     std::optional<uint32_t> n = take_number(text);
     for (char c : text) {

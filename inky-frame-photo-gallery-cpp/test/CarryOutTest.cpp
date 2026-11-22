@@ -68,19 +68,19 @@ TEST_CASE("response \"7 SHOW /images/cat.jpg\" -> N becomes 7 and the SHOW is /i
     CHECK(outcome.ignored.empty());
 }
 
-TEST_CASE("response \"8 sleep\" -> N becomes 8, no SHOW, and \"8 sleep\" is ignored as unknown" * doctest::skip()) {
-}
+TEST_CASE("response \"8 sleep\" -> N becomes 8, no SHOW, and \"8 sleep\" is ignored as unknown") {
+    Outcome outcome = work_out("8 sleep");
 
-TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 sleep\" -> N becomes 8 (the highest), the SHOW is /images/cat.jpg"
-          * doctest::skip()) {
-}
-
-TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 SHOW /images/dog.jpg\" -> only the last SHOW: /images/dog.jpg"
-          * doctest::skip()) {
+    CHECK(outcome.new_n == std::optional<uint32_t>(8));
+    CHECK(outcome.show_path == std::nullopt);
+    CHECK(outcome.ignored == Ignored{{8, "sleep"}});
 }
 
 TEST_CASE("N becomes the highest sequence number even when it is not the last line: \"9 sleep\\n8 SHOW /images/cat.jpg\""
-          " -> N becomes 9" * doctest::skip()) {
+          " -> N becomes 9") {
+    Outcome outcome = work_out("9 sleep\n8 SHOW /images/cat.jpg");
+
+    CHECK(outcome.new_n == std::optional<uint32_t>(9));
 }
 
 TEST_CASE("only exactly \"SHOW <path>\" is a SHOW: \"9 show /images/cat.jpg\", \"9 SHOW\", \"9 SHOW /images/my cat.jpg\""
@@ -92,6 +92,19 @@ TEST_CASE("N is written for /last_instruction.txt as a decimal number that reads
 }
 
 TEST_SUITE("verification") {
+    // Relies on: the "7 SHOW /images/cat.jpg" test, whose code takes the path of every SHOW in turn, so the last one
+    // wins. (Moved here from the driving tests before being activated.)
+    TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 SHOW /images/dog.jpg\" -> only the last SHOW: /images/dog.jpg"
+              * doctest::skip()) {
+    }
+
+    // Relies on: the "7 SHOW /images/cat.jpg" and "8 sleep" tests. (Moved here from the driving tests before being
+    // activated: the highest number is also the last one here, so it forces nothing new; the "highest even when it
+    // is not the last line" test drives that.)
+    TEST_CASE("response \"7 SHOW /images/cat.jpg\\n8 sleep\" -> N becomes 8 (the highest), the SHOW is "
+              "/images/cat.jpg" * doctest::skip()) {
+    }
+
     // Relies on: the "7 SHOW /images/cat.jpg" test. Whether the photo later downloads makes no difference here.
     TEST_CASE("response \"7 SHOW /images/dog.jpg\" (dog.jpg will return 404) -> N still becomes 7" * doctest::skip()) {
     }

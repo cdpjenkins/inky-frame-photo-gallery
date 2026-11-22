@@ -52,15 +52,23 @@ struct ResponsePlan {
 // the text is not a SHOW.
 std::optional<std::string_view> show_path_of(std::string_view text);
 
-// Works out what an /instructions response asks the frame to do, calling on_unknown(instruction) for each
-// instruction the frame does not know.
+// Story 0013, Rule 1 (story 0006, Rule 7): after a successful fetch, N becomes the highest sequence number in the
+// response, whether or not each instruction is carried out. Gives nothing for a response with no instructions, which
+// leaves N unchanged.
+std::optional<uint32_t> highest_sequence_number(std::string_view response);
+
+// Works out what an /instructions response asks the frame to do: the new N (Rule 1), and what to carry out. Only the
+// last SHOW is carried out (Rule 2), and on_unknown(instruction) is called for each instruction the frame does not
+// know (Rule 4).
 template<typename F>
 ResponsePlan plan_response(std::string_view response, F on_unknown) {
     ResponsePlan plan;
+    plan.new_n = highest_sequence_number(response);
     for_each_instruction(response, [&](const Instruction &instruction) {
-        plan.new_n = instruction.sequence_number;
         if (std::optional<std::string_view> path = show_path_of(instruction.text)) {
             plan.show_path = path;
+        } else {
+            on_unknown(instruction);
         }
     });
     return plan;
