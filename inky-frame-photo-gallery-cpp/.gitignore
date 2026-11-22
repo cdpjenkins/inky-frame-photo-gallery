@@ -3,3 +3,4 @@ build/*
 cmake-build-*/
 wifi_settings.h
 /cmake/
+/build-host/
