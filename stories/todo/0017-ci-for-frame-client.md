@@ -2,7 +2,7 @@
 
 Status: Not yet example-mapped.
 
-Sliced out of [0015-merge-frame-client-into-this-repo](../ready/0015-merge-frame-client-into-this-repo.md) while scoping it.
+Sliced out of [0015-merge-frame-client-into-this-repo](../doing/0015-merge-frame-client-into-this-repo.md) while scoping it.
 
 ## Context
 
