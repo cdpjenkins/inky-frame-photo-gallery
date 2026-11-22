@@ -20,6 +20,7 @@ add_executable(host_tests
         test.cpp
         HarnessTest.cpp
         InstructionsTest.cpp
+        CarryOutTest.cpp
         ../Instructions.cpp)
 target_include_directories(host_tests PRIVATE ..)
 
