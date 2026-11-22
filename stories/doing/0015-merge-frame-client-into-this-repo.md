@@ -61,13 +61,13 @@ and one set of skills.
 
 ## Done when
 
-- [ ] The layout above is in place, and the backend's history is kept.
-- [ ] From `backend-ts/`: `npm ci`, `npm run build`, `npm test` (all 143 tests pass) and `npm run build:simulator`
+- [x] The layout above is in place, and the backend's history is kept.
+- [x] From `backend-ts/`: `npm ci`, `npm run build`, `npm test` (all 143 tests pass) and `npm run build:simulator`
       work.
 - [ ] CI passes on GitHub for the restructured repo.
-- [ ] `inky-frame-photo-gallery-cpp/wifi_settings.h` is ignored by git.
-- [ ] `AGENTS.md`, the root `README.md` and the story links describe the new layout.
-- [ ] There is one licence file, `LICENCE` (MIT), at the root, and `backend-ts/package.json` says `"license": "MIT"`.
+- [x] `inky-frame-photo-gallery-cpp/wifi_settings.h` is ignored by git.
+- [x] `AGENTS.md`, the root `README.md` and the story links describe the new layout.
+- [x] There is one licence file, `LICENCE` (MIT), at the root, and `backend-ts/package.json` says `"license": "MIT"`.
 - [ ] The admin builds the C++ client by hand from `inky-frame-photo-gallery-cpp/` (the admin's responsibility).
 
 ## Out of scope (the admin does these later)
