@@ -9,7 +9,7 @@ structure to build on.
 Core 0's stack is only 2 KB, and `read_text_file` declares a 16 KB local buffer, so calling it silently overwrites
 about 14 KB of other memory, including the top of the heap. That would explain the freezes seen when returning
 `std::string`s or throwing exceptions, and the "memory getting trampled" comment in `HttpConnection.cpp`. Fixing and
-confirming this is [story 0018](../stories/todo/0018-fix-stack-buffer-in-read-text-file.md), to be done before story
+confirming this is [story 0018](../stories/doing/0018-fix-stack-buffer-in-read-text-file.md), to be done before story
 0016.
 
 ## Other problems, roughly by risk
