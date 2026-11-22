@@ -108,3 +108,66 @@ No open questions - all ambiguities were resolved.
 - [0015](../done/0015-merge-frame-client-into-this-repo.md): Merge the C++ frame client into this repo
 - [0016](../done/0016-frame-fetches-instructions.md): The Inky Frame wakes, fetches instructions and sleeps
 - [0019](../todo/0019-scale-photos-to-fit-the-screen.md): Scale photos that are not 600 × 448 to fit the screen
+
+## What was done
+
+- **Host-tested logic** (`Instructions.hpp/.cpp`, built test-first with `test/CarryOutTest.cpp`, 14 tests):
+  `plan_response()` works out the new N (`highest_sequence_number()`, Rule 1), the SHOW to carry out (the last one,
+  Rule 2) and the unknown instructions (Rule 4); `show_path_of()` recognises a SHOW exactly as the simulator does
+  (`^SHOW (\S+)$`); `format_sequence_number()` writes N for `/last_instruction.txt`.
+- **Device code** (`main.cpp`): after logging the instructions it received, the frame logs
+  `Ignoring unknown instruction <seq>: <text>` for unknown ones, saves the new N, then shows the photo:
+  - `save_n()` writes N to `/last_instruction.txt` before anything is carried out.
+  - `show_photo()` creates the photo's folder (e.g. `/images`) if needed, downloads to `<path>.part`, and replaces
+    `<path>` only after a 200; on any failure it deletes the `.part` file, so the old copy is kept.
+  - `draw_photo()` decodes into the frame's picture memory and refreshes the screen only if decoding worked.
+- **Memory**: every new buffer is static; the largest frame on a cycle's path is `run_cycle` (288 bytes, with
+  `gcc -fstack-usage`).
+
+## Decisions made during implementation
+
+These messages were not fixed by the rules above:
+
+- `Could not download <path>: the path is too long` (the path, plus `.part`, must fit HttpConnection's 128-byte
+  buffer).
+- `Could not download <path>: could not create its folder on the SD card`.
+- `Could not download <path>: could not save it to the SD card` (the temporary file cannot be opened).
+- `Could not download <path>: could not replace the copy on the SD card` (the old copy cannot be removed, or the
+  temporary file cannot be renamed).
+- Successes are also logged: `Saved N = <n> to /last_instruction.txt` and `Saved <path>`.
+
+Only the last folder in a SHOW's path is created (enough for `/images/...`).
+
+## Device checks (by the admin, on the Inky Frame)
+
+Before building: nothing new in `wifi_settings.h`. Run the backend with `npm run dev` from `backend-ts/`.
+
+On USB power, watching the serial log:
+
+1. [ ] **Last SHOW is drawn**: with the backend's current instructions (`1 SHOW .../Wedding_Day_Katie_and_Chris_319...`
+   and `2 SHOW .../Wedding_Day_Katie_and_Chris_267...`), the log shows `Saved N = 2 to /last_instruction.txt`, the
+   backend logs `GET /images/Wedding_Day_Katie_and_Chris_267.jpg_scaled.jpg`, the log shows `Saved /images/...267...`,
+   and the screen shows photo 267 (not 319).
+2. [ ] **N is used next cycle**: in the next cycle (after `Still powered (USB), so restarting for the next cycle`), the
+   frame asks for `/instructions?after=2`, and nothing is redrawn. This also confirms story 0016's check 3.
+3. [ ] **Unknown instruction**: add `sleep` on the admin page; the next cycle logs `Received instruction 3: sleep` and
+   `Ignoring unknown instruction 3: sleep`, saves N = 3, and the screen does not change.
+4. [ ] **Same photo again**: click "Show on frame" for the photo already on screen; the next cycle downloads it again
+   and redraws it.
+5. [ ] **Download fails (404)**: type `SHOW /images/missing.jpg` on the admin page (a valid SHOW for a photo that does
+   not exist); the next cycle logs `Could not download /images/missing.jpg (404)`, and the photo on screen stays.
+6. [ ] **Cannot be drawn**: put a file that is not a JPEG, named e.g. `bad.jpg`, in the backend's images folder, and
+   click "Show on frame" for it; the next cycle logs `Could not draw /images/bad.jpg`, and the photo on screen stays.
+7. [ ] **Stack**: every `Stack ...` line, including `Stack after drawing a photo`, says the stack pointer is above the
+   bottom of the stack.
+
+On battery:
+
+8. [ ] **Power off and wake**: after a cycle the frame powers off, and about 5 minutes later the backend logs a new
+   `GET /instructions?after=<N>`. This confirms story 0016's check 8.
+
+Needing the SD card (optional until it can be read on the Mac):
+
+9. [ ] **Saved files**: `/last_instruction.txt` holds the last N, `/images/` holds the downloaded photos, and no
+   `.part` files are left behind.
+10. [ ] **Old copy kept**: with `/images/cat.jpg` on the card, a failed re-download leaves it unchanged.
