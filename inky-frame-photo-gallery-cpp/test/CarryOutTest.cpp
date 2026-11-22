@@ -1,5 +1,5 @@
 // Test list for story 0013: The Inky Frame carries out SHOW instructions
-// (stories/ready/0013-frame-carries-out-show.md) - only the pure logic that can be unit-tested on the host.
+// (stories/doing/0013-frame-carries-out-show.md) - only the pure logic that can be unit-tested on the host.
 //
 // The operation under test: "working out what a response asks the frame to do". Given N and an /instructions
 // response, it gives:

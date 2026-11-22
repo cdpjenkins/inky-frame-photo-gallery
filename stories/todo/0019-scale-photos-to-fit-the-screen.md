@@ -2,7 +2,7 @@
 
 Status: Not yet example-mapped.
 
-Sliced out of [0013-frame-carries-out-show](../ready/0013-frame-carries-out-show.md) during its Example Mapping
+Sliced out of [0013-frame-carries-out-show](../doing/0013-frame-carries-out-show.md) during its Example Mapping
 session.
 
 ## Context
