@@ -37,6 +37,11 @@ void filesystem_list(const char *path);
 bool mount_sd_card_filesystem();
 bool connect_wifi();
 uint32_t read_n();
+void save_n(uint32_t n);
+bool write_text_file(const char *file_path, const char *text);
+void show_photo(string_view show_path);
+bool ensure_folder_for(const char *path);
+bool draw_photo(const char *path);
 void run_cycle();
 void sleep_until_next_cycle();
 void paint_stack();
@@ -61,7 +66,10 @@ constexpr uint HOLD_VSYS_EN_PIN = 2;
 
 void *jpegdec_open_callback(const char *filename, int32_t *size) {
     FIL *fil = new FIL;
-    if (f_open(fil, filename, FA_READ)) { return nullptr; }
+    if (f_open(fil, filename, FA_READ)) {
+        delete fil;
+        return nullptr;
+    }
     *size = f_size(fil);
 
     cout << "opened file; size: " << *size << endl;
@@ -107,7 +115,9 @@ int jpegdec_draw_callback(JPEGDRAW *draw) {
   return 1; // continue drawing
 }
 
-void draw_jpeg(std::string filename, int x, int y, int w, int h) {
+// Decodes a JPEG from the SD card into the frame's picture memory (it does not refresh the screen). Returns false if
+// the file cannot be opened or decoded (story 0013, Rule 3).
+bool draw_jpeg(const char *filename, int x, int y, int w, int h) {
     // TODO: this is a horrible way to do it but we need to pass some parameters
     // into the jpegdec_draw_callback() method somehow and the library isn't
     // setup to allow any sort of user data to be passed around - yuck
@@ -116,13 +126,15 @@ void draw_jpeg(std::string filename, int x, int y, int w, int h) {
     jpeg_decode_options.w = w;
     jpeg_decode_options.h = h;
 
-    jpeg.open(
-        filename.c_str(),
-        jpegdec_open_callback,
-        jpegdec_close_callback,
-        jpegdec_read_callback,
-        jpegdec_seek_callback,
-        jpegdec_draw_callback);
+    if (!jpeg.open(
+            filename,
+            jpegdec_open_callback,
+            jpegdec_close_callback,
+            jpegdec_read_callback,
+            jpegdec_seek_callback,
+            jpegdec_draw_callback)) {
+        return false;
+    }
 
     jpeg_decode_options.w = jpeg.getWidth();
     jpeg_decode_options.h = jpeg.getHeight();
@@ -131,10 +143,11 @@ void draw_jpeg(std::string filename, int x, int y, int w, int h) {
 
     cout << "Starting jpeg decode.." << endl;
     int start = millis();
-    jpeg.decode(0, 0, 0);
+    int decoded = jpeg.decode(0, 0, 0);
     cout << "done in " << int(millis() - start) << " ms!" << endl;
 
     jpeg.close();
+    return decoded != 0;
 }
 
 
@@ -215,6 +228,133 @@ void run_cycle() {
     for_each_instruction(response, [](const Instruction &instruction) {
         cout << "Received instruction " << instruction.sequence_number << ": " << instruction.text << endl;
     });
+
+    // Story 0013: work out what the response asks for (Rules 1, 2 and 4), save the new N before carrying anything
+    // out (Rule 1), then show the photo from the last SHOW (Rules 2, 3 and 5).
+    ResponsePlan plan = plan_response(response, [](const Instruction &instruction) {
+        cout << "Ignoring unknown instruction " << instruction.sequence_number << ": " << instruction.text << endl;
+    });
+    if (plan.new_n) {
+        save_n(*plan.new_n);
+    }
+    if (plan.show_path) {
+        show_photo(*plan.show_path);
+    }
+}
+
+// Story 0013, Rule 1: N is written to N_FILE_PATH. If that fails, the frame says so and carries on.
+void save_n(uint32_t n) {
+    char text[16];
+    if (!format_sequence_number(n, text, sizeof text) || !write_text_file(N_FILE_PATH, text)) {
+        cout << "Could not save N to " << N_FILE_PATH << endl;
+        return;
+    }
+    cout << "Saved N = " << n << " to " << N_FILE_PATH << endl;
+}
+
+// Writes `text` as the whole contents of a file, replacing it. Returns false if anything fails.
+bool write_text_file(const char *file_path, const char *text) {
+    static FIL file_handle;     // static, to keep the stack small (story 0016)
+    if (f_open(&file_handle, file_path, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
+        return false;
+    }
+    UINT length = strlen(text);
+    UINT written = 0;
+    FRESULT write_result = f_write(&file_handle, text, length, &written);
+    FRESULT close_result = f_close(&file_handle);
+    return write_result == FR_OK && written == length && close_result == FR_OK;
+}
+
+// Story 0013, Rules 2, 3 and 5: downloads the photo at `show_path` (e.g. /images/cat.jpg) to the same path on the SD
+// card, then draws it. It is downloaded to a temporary file, which replaces the file at that path only when the
+// download succeeds, so a failed download keeps the old copy. The screen is refreshed only if the photo was decoded.
+void show_photo(string_view show_path) {
+    // Static, to keep the stack small. Room is left for the temporary file's ".part"; HttpConnection takes paths of
+    // up to PATH_MAX_LENGTH - 2 characters.
+    static char path[PATH_MAX_LENGTH];
+    static char download_path[PATH_MAX_LENGTH];
+    const char *DOWNLOAD_SUFFIX = ".part";
+
+    if (show_path.size() + strlen(DOWNLOAD_SUFFIX) > PATH_MAX_LENGTH - 2) {
+        cout << "Could not download " << show_path << ": the path is too long" << endl;
+        return;
+    }
+    memcpy(path, show_path.data(), show_path.size());
+    path[show_path.size()] = '\0';
+    snprintf(download_path, sizeof download_path, "%s%s", path, DOWNLOAD_SUFFIX);
+
+    if (!ensure_folder_for(path)) {
+        cout << "Could not download " << path << ": could not create its folder on the SD card" << endl;
+        return;
+    }
+
+    inky.led(pimoroni::InkyFrame::LED_CONNECTION, 100);
+    HttpResult result = http_get_to_file(SERVER_ADDRESS, SERVER_PORT, path, download_path);
+    inky.led(pimoroni::InkyFrame::LED_CONNECTION, 0);
+
+    if (result.outcome == HttpResult::FILE_ERROR) {
+        cout << "Could not download " << path << ": could not save it to the SD card" << endl;
+        return;
+    }
+    if (result.outcome == HttpResult::UNREACHABLE) {
+        cout << "Could not download " << path << ": could not reach the backend" << endl;
+        f_unlink(download_path);
+        return;
+    }
+    if (result.status != 200) {
+        cout << "Could not download " << path << " (" << result.status << ")" << endl;
+        f_unlink(download_path);
+        return;
+    }
+
+    // FatFs cannot rename over an existing file, so the old copy is removed first.
+    FRESULT removed = f_unlink(path);
+    if ((removed != FR_OK && removed != FR_NO_FILE) || f_rename(download_path, path) != FR_OK) {
+        cout << "Could not download " << path << ": could not replace the copy on the SD card" << endl;
+        f_unlink(download_path);
+        return;
+    }
+    cout << "Saved " << path << endl;
+
+    if (!draw_photo(path)) {
+        cout << "Could not draw " << path << endl;
+    }
+}
+
+// Story 0013, Rule 2: creates the folder that holds `path` (e.g. /images for /images/cat.jpg) if it does not exist.
+// Only the last folder in the path is created.
+bool ensure_folder_for(const char *path) {
+    static char folder[PATH_MAX_LENGTH];
+    const char *last_slash = strrchr(path, '/');
+    if (last_slash == nullptr || last_slash == path) {
+        return true;    // the photo is in the root folder
+    }
+    size_t length = last_slash - path;
+    memcpy(folder, path, length);
+    folder[length] = '\0';
+
+    FRESULT result = f_mkdir(folder);
+    return result == FR_OK || result == FR_EXIST;
+}
+
+// Story 0013, Rule 3: decodes the photo into the frame's picture memory, and refreshes the screen only if that
+// worked. Returns false, leaving the screen as it was, if the photo could not be decoded.
+bool draw_photo(const char *path) {
+    inky.led(pimoroni::InkyFrame::LED_ACTIVITY, 100);
+    cout << "Drawing " << path << "..." << endl;
+    inky.set_pen(0);
+    inky.clear();
+    bool decoded = draw_jpeg(path, 0, 0, 600, 448);
+    inky.led(pimoroni::InkyFrame::LED_ACTIVITY, 0);
+    if (!decoded) {
+        return false;
+    }
+
+    cout << "Updating screen... " << endl;
+    inky.update();
+    cout << "Done updating screen" << endl;
+    report_stack_usage("after drawing a photo");
+    return true;
 }
 
 // Story 0016, Rule 2: N comes from N_FILE_PATH on the SD card; no file means 0.
