@@ -40,12 +40,16 @@ Step 1's logging, on 2026-11-23 (on USB power):
 | usual spot | reset | `reset (RUN pin)` | failed at 3000ms (status -1) | - |
 | about 3 m from the router | USB restart | `watchdog restart` | connected (IP after 4500ms) | -53 dBm |
 
-- Failures are not tied to how the frame started: they happened after flashing (which reboots through the watchdog),
-  after a power-on and after a reset. At the usual spot, 3 of 4 joins failed.
+- How the frame started does seem to matter. In the admin's wider experience at the usual spot, joins usually fail
+  after a cold start or after flashing (which reboots through the watchdog), and usually succeed after a soft reset.
+  The four logged starts there are too few to show it either way (3 failed, including one reset).
+- A possible explanation for both: a soft reset is usually done straight after a failed join, so it acts as a quick
+  second attempt, whereas a cold start or a flash makes a first attempt after a long gap. If the router tends to
+  refuse a first join request but accept a quick follow-up (more likely with a weak signal), the retry in step 2
+  should handle all of these.
 - The router accepts or refuses the join at about 3 seconds every time, so it is a refusal, not a timeout.
 - At the usual spot the signal is weak (-71 dBm, around where WiFi becomes unreliable); near the router it was
-  -53 dBm (roughly 60 times stronger) and the join worked. A weak signal is the main suspect, but one success is not
-  yet proof: more starts near the router are being run.
+  -53 dBm (roughly 60 times stronger) and the join worked. A weak signal may contribute, but one success is not proof.
 - The frame joined the router directly (BSSID `74:12:13:4d:65:4d`, matching the SSID `toob-4D654C`).
 - The wake-up event is logged as `RTC alarm (6)` after every kind of start, even power-on, probably because the RTC
   timer flag set when sleeping is still set; it is not a reliable guide for now.
@@ -66,6 +70,21 @@ Each step is done, then checked on the device, before the next.
 2. **Retry the join**: on `connection failed`, try again, within the existing 30-second limit, logging each attempt.
 3. **Disconnect cleanly** (only if failures continue after step 2): leave the network (`cyw43_wifi_leave`) and stop
    the driver (`cyw43_arch_deinit`) before sleeping or restarting.
+
+## Step 2: results
+
+With the retry, at the usual spot:
+
+| Start | Start reason logged | Attempts | RSSI |
+|---|---|---|---|
+| after flashing | `watchdog restart` | 1 refused at 3000ms; 2 connected at 3000ms | -72 dBm |
+| cold starts (several, reported by the admin) | `power-on` | always 1 refused; 2 connected | - |
+| soft resets (several, reported by the admin) | `reset (RUN pin)` | always 1 connected | - |
+
+This supports the explanation above: the router refuses the first join request after a gap, and accepts a quick
+follow-up, which the retry now provides within the same start. Still to check: automatic USB restarts (on USB power,
+after `Sleeping for 5 minutes` the frame waits and restarts itself, logging
+`Still powered (USB), so restarting for the next cycle`), which also failed before the retry.
 
 ## Step 2: what was done
 
