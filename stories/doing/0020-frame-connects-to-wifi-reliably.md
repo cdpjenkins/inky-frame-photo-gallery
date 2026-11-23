@@ -28,6 +28,28 @@ The router's own logs could say why it refused the join, but they contain person
 and MAC addresses, the public IP address, account details), so they are not to be pasted into this conversation. The
 frame's MAC address (logged in step 1) lets the admin find only the frame's lines.
 
+## Results so far
+
+Step 1's logging, on 2026-11-23 (on USB power):
+
+| Where | Start | Start reason logged | Join | RSSI |
+|---|---|---|---|---|
+| usual spot | after flashing | `watchdog restart` | failed at 3000ms (status -1) | - |
+| usual spot | reset | `reset (RUN pin)` | connected at 3000ms | -71 dBm |
+| usual spot | cold start | `power-on` | failed at 3000ms (status -1) | - |
+| usual spot | reset | `reset (RUN pin)` | failed at 3000ms (status -1) | - |
+| about 3 m from the router | USB restart | `watchdog restart` | connected (IP after 4500ms) | -53 dBm |
+
+- Failures are not tied to how the frame started: they happened after flashing (which reboots through the watchdog),
+  after a power-on and after a reset. At the usual spot, 3 of 4 joins failed.
+- The router accepts or refuses the join at about 3 seconds every time, so it is a refusal, not a timeout.
+- At the usual spot the signal is weak (-71 dBm, around where WiFi becomes unreliable); near the router it was
+  -53 dBm (roughly 60 times stronger) and the join worked. A weak signal is the main suspect, but one success is not
+  yet proof: more starts near the router are being run.
+- The frame joined the router directly (BSSID `74:12:13:4d:65:4d`, matching the SSID `toob-4D654C`).
+- The wake-up event is logged as `RTC alarm (6)` after every kind of start, even power-on, probably because the RTC
+  timer flag set when sleeping is still set; it is not a reliable guide for now.
+
 ## Scope
 
 Each step is done, then checked on the device, before the next.
