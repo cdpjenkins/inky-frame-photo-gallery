@@ -13,6 +13,7 @@ using namespace pimoroni;
 
 #include "pico/cyw43_arch.h"
 #include "hardware/watchdog.h"
+#include "hardware/structs/vreg_and_chip_reset.h"
 #include "lwip/tcp.h"
 #include "lwip/apps/http_client.h"
 
@@ -36,6 +37,8 @@ HttpResult http_get_to_file(const char *ip_addres, int port, const char *path, c
 void filesystem_list(const char *path);
 bool mount_sd_card_filesystem();
 bool connect_wifi();
+void log_start_reason();
+void log_wifi_connection();
 uint32_t read_n();
 void save_n(uint32_t n);
 bool write_text_file(const char *file_path, const char *text);
@@ -163,6 +166,8 @@ int main() {
     cout << "*****************************" << endl;
     cout << "Welcome to the Photo Gallery!" << endl;
     cout << "*****************************" << endl << endl << endl;
+
+    log_start_reason();
 
     // Errors are returned, not thrown (story 0016). This catch is only a safety net, so that the frame still sleeps
     // and tries again if a library throws.
@@ -414,6 +419,9 @@ bool connect_wifi() {
     cyw43_arch_enable_sta_mode();
 
     cout << "Connecting to WiFi (SSID: " << WIFI_SSID << ")... " << endl;
+    // Story 0020: when the join starts, and which attempt it is (there is only one attempt for now).
+    const int attempt = 1;
+    cout << "Join attempt " << attempt << ", " << to_ms_since_boot(get_absolute_time()) << "ms after start-up" << endl;
 
     const int CONNECT_TIMEOUT_MS = 30000;
     const int CHECK_INTERVAL_MS = 500;
@@ -444,15 +452,18 @@ bool connect_wifi() {
                 goto connected;
             case CYW43_LINK_FAIL:
                 cout << "connection failed" << endl;
-                cout << "Could not connect to WiFi: connection failed" << endl;
+                cout << "Could not connect to WiFi: connection failed (status " << status << ") after " << elapsed_ms
+                     << "ms on attempt " << attempt << endl;
                 return false;
             case CYW43_LINK_NONET:
                 cout << "network not found" << endl;
-                cout << "Could not connect to WiFi: network not found" << endl;
+                cout << "Could not connect to WiFi: network not found (status " << status << ") after " << elapsed_ms
+                     << "ms on attempt " << attempt << endl;
                 return false;
             case CYW43_LINK_BADAUTH:
                 cout << "bad authentication" << endl;
-                cout << "Could not connect to WiFi: bad authentication" << endl;
+                cout << "Could not connect to WiFi: bad authentication (status " << status << ") after " << elapsed_ms
+                     << "ms on attempt " << attempt << endl;
                 return false;
             default:
                 cout << "unknown (" << status << ")" << endl;
@@ -466,11 +477,61 @@ bool connect_wifi() {
     return false;
 
 connected:
+    cout << "Connected on attempt " << attempt << " after " << elapsed_ms << "ms" << endl;
+    log_wifi_connection();
     cout << "IP address: " << ip4addr_ntoa(netif_ip_addr4(netif_default)) << endl;
     cout << "Netmask:    " << ip4addr_ntoa(netif_ip_netmask4(netif_default)) << endl;
     cout << "Gateway:    " << ip4addr_ntoa(netif_ip_gw4(netif_default)) << endl;
     cout << "Hostname:   " << netif_get_hostname(netif_default) << endl;
     return true;
+}
+
+// Story 0020: why the frame started. A watchdog restart is the USB-power restart of story 0016
+// (sleep_until_next_cycle). Otherwise the RP2040's CHIP_RESET register says what last reset the chip: power-on, the
+// RUN pin (a reset button), or a debugger. The Inky Frame library also says what woke it (e.g. the RTC alarm).
+void log_start_reason() {
+    uint32_t chip_reset = vreg_and_chip_reset_hw->chip_reset;
+    const char *reason;
+    if (watchdog_caused_reboot()) {
+        reason = "watchdog restart";
+    } else if (chip_reset & VREG_AND_CHIP_RESET_CHIP_RESET_HAD_RUN_BITS) {
+        reason = "reset (RUN pin)";
+    } else if (chip_reset & VREG_AND_CHIP_RESET_CHIP_RESET_HAD_POR_BITS) {
+        reason = "power-on";
+    } else if (chip_reset & VREG_AND_CHIP_RESET_CHIP_RESET_HAD_PSM_RESTART_BITS) {
+        reason = "debugger restart";
+    } else {
+        reason = "unknown";
+    }
+
+    const char *WAKE_UP_EVENTS[] = {"unknown", "button A", "button B", "button C", "button D", "button E", "RTC alarm",
+                                    "external trigger"};
+    int event = inky.get_wake_up_event();
+    const char *event_name = event >= 0 && event < 8 ? WAKE_UP_EVENTS[event] : "unknown";
+
+    char chip_reset_text[16];
+    snprintf(chip_reset_text, sizeof chip_reset_text, "0x%08lx", static_cast<unsigned long>(chip_reset));
+    cout << "Start reason: " << reason << " (CHIP_RESET " << chip_reset_text << "); wake-up event: " << event_name
+         << " (" << event << ")" << endl;
+}
+
+// Story 0020: what the frame joined: its own WiFi MAC address (to find it in the router's logs), the access point's
+// BSSID, and the signal strength.
+void log_wifi_connection() {
+    uint8_t mac[6] = {};
+    uint8_t bssid[6] = {};
+    int32_t rssi = 0;
+    int mac_rc = cyw43_wifi_get_mac(&cyw43_state, CYW43_ITF_STA, mac);
+    int bssid_rc = cyw43_wifi_get_bssid(&cyw43_state, bssid);
+    int rssi_rc = cyw43_wifi_get_rssi(&cyw43_state, &rssi);
+
+    char text[24];
+    snprintf(text, sizeof text, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    cout << "WiFi MAC:   " << text << (mac_rc ? " (could not read)" : "") << endl;
+    snprintf(text, sizeof text, "%02x:%02x:%02x:%02x:%02x:%02x", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4],
+             bssid[5]);
+    cout << "BSSID:      " << text << (bssid_rc ? " (could not read)" : "") << endl;
+    cout << "RSSI:       " << rssi << " dBm" << (rssi_rc ? " (could not read)" : "") << endl;
 }
 
 bool mount_sd_card_filesystem() {
