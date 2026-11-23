@@ -101,11 +101,22 @@ that are refused on attempt 1 connect on a later attempt.
 
 ## Done when
 
-- [ ] Step 1: the log shows the start reason, join timing, attempts and, after a join, the MAC address, BSSID and
+- [x] Step 1: the log shows the start reason, join timing, attempts and, after a join, the MAC address, BSSID and
       RSSI. Over a handful of cold starts, resets and USB restarts, the admin has recorded which ones fail.
-- [ ] Step 2: cold starts and starts after new firmware connect (if on a later attempt, the log says so).
-- [ ] Step 3: done if needed, or recorded as not needed.
-- [ ] The stack diagnostic still shows the stack pointer above the bottom of the stack.
+      (Cold starts, resets and flashing were recorded; USB restarts were not.)
+- [x] Step 2: cold starts and starts after new firmware connect (if on a later attempt, the log says so).
+- [x] Step 3: done if needed, or recorded as not needed. (Not needed: see Outcome.)
+- [x] The stack diagnostic still shows the stack pointer above the bottom of the stack. (Deepest use 1416 of 2048
+      bytes.)
+
+## Outcome
+
+Closed on 2026-11-23. With the retry, at the frame's usual spot (RSSI about -72 dBm), every kind of start that was
+tried connects: after flashing and on cold starts on attempt 2, on soft resets on attempt 1. Step 3 (a clean
+disconnect before sleeping) was not needed, because the retry handles every kind of start that was tried.
+
+Not checked: automatic USB restarts (the admin had no way to run them at the time). They failed before the retry;
+with it, they are expected to connect on a later attempt, as flashing does (both restart through the watchdog).
 
 ## Out of scope
 
