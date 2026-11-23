@@ -419,61 +419,81 @@ bool connect_wifi() {
     cyw43_arch_enable_sta_mode();
 
     cout << "Connecting to WiFi (SSID: " << WIFI_SSID << ")... " << endl;
-    // Story 0020: when the join starts, and which attempt it is (there is only one attempt for now).
-    const int attempt = 1;
-    cout << "Join attempt " << attempt << ", " << to_ms_since_boot(get_absolute_time()) << "ms after start-up" << endl;
-
-    const int CONNECT_TIMEOUT_MS = 30000;
+    // Story 0020, step 2: if the router refuses the join ("connection failed"), leave and try again, until the join
+    // works or CONNECT_TIMEOUT_MS has passed since the first attempt. Each attempt is logged. "Network not found" and
+    // "bad authentication" are not retried.
+    const uint32_t CONNECT_TIMEOUT_MS = 30000;
     const int CHECK_INTERVAL_MS = 500;
-    int elapsed_ms = 0;
+    const int RETRY_PAUSE_MS = 1000;
+    const uint32_t first_attempt_ms = to_ms_since_boot(get_absolute_time());
 
-    rc = cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK);
-    if (rc) {
-        cout << "Could not connect to WiFi: failed to start the connection, return code: " << rc << endl;
-        return false;
-    }
+    int attempt = 0;
+    int elapsed_ms = 0;     // since the start of the current attempt
+    while (to_ms_since_boot(get_absolute_time()) - first_attempt_ms < CONNECT_TIMEOUT_MS) {
+        attempt++;
+        cout << "Join attempt " << attempt << ", " << to_ms_since_boot(get_absolute_time()) << "ms after start-up"
+             << endl;
 
-    while (elapsed_ms < CONNECT_TIMEOUT_MS) {
-        int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-
-        cout << "Status after " << elapsed_ms << "ms: ";
-        switch(status) {
-            case CYW43_LINK_DOWN:
-                cout << "link down" << endl;
-                break;
-            case CYW43_LINK_JOIN:
-                cout << "joining" << endl;
-                break;
-            case CYW43_LINK_NOIP:
-                cout << "connected, waiting for IP" << endl;
-                break;
-            case CYW43_LINK_UP:
-                cout << "connected with IP!" << endl;
-                goto connected;
-            case CYW43_LINK_FAIL:
-                cout << "connection failed" << endl;
-                cout << "Could not connect to WiFi: connection failed (status " << status << ") after " << elapsed_ms
-                     << "ms on attempt " << attempt << endl;
-                return false;
-            case CYW43_LINK_NONET:
-                cout << "network not found" << endl;
-                cout << "Could not connect to WiFi: network not found (status " << status << ") after " << elapsed_ms
-                     << "ms on attempt " << attempt << endl;
-                return false;
-            case CYW43_LINK_BADAUTH:
-                cout << "bad authentication" << endl;
-                cout << "Could not connect to WiFi: bad authentication (status " << status << ") after " << elapsed_ms
-                     << "ms on attempt " << attempt << endl;
-                return false;
-            default:
-                cout << "unknown (" << status << ")" << endl;
+        rc = cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_MIXED_PSK);
+        if (rc) {
+            cout << "Could not connect to WiFi: failed to start the connection, return code: " << rc << endl;
+            return false;
         }
 
-        sleep_ms(CHECK_INTERVAL_MS);
-        elapsed_ms += CHECK_INTERVAL_MS;
+        elapsed_ms = 0;
+        bool refused = false;
+        while (!refused && to_ms_since_boot(get_absolute_time()) - first_attempt_ms < CONNECT_TIMEOUT_MS) {
+            int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+
+            cout << "Status after " << elapsed_ms << "ms: ";
+            switch(status) {
+                case CYW43_LINK_DOWN:
+                    cout << "link down" << endl;
+                    break;
+                case CYW43_LINK_JOIN:
+                    cout << "joining" << endl;
+                    break;
+                case CYW43_LINK_NOIP:
+                    cout << "connected, waiting for IP" << endl;
+                    break;
+                case CYW43_LINK_UP:
+                    cout << "connected with IP!" << endl;
+                    goto connected;
+                case CYW43_LINK_FAIL:
+                    cout << "connection failed" << endl;
+                    cout << "Join attempt " << attempt << " refused: connection failed (status " << status << ") after "
+                         << elapsed_ms << "ms" << endl;
+                    refused = true;
+                    break;
+                case CYW43_LINK_NONET:
+                    cout << "network not found" << endl;
+                    cout << "Could not connect to WiFi: network not found (status " << status << ") after "
+                         << elapsed_ms << "ms on attempt " << attempt << endl;
+                    return false;
+                case CYW43_LINK_BADAUTH:
+                    cout << "bad authentication" << endl;
+                    cout << "Could not connect to WiFi: bad authentication (status " << status << ") after "
+                         << elapsed_ms << "ms on attempt " << attempt << endl;
+                    return false;
+                default:
+                    cout << "unknown (" << status << ")" << endl;
+            }
+
+            if (!refused) {
+                sleep_ms(CHECK_INTERVAL_MS);
+                elapsed_ms += CHECK_INTERVAL_MS;
+            }
+        }
+
+        if (refused) {
+            // Leave, so that the next attempt starts a fresh join.
+            cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
+            sleep_ms(RETRY_PAUSE_MS);
+        }
     }
 
-    cout << "Could not connect to WiFi: timed out after " << CONNECT_TIMEOUT_MS << "ms" << endl;
+    cout << "Could not connect to WiFi: no join worked within " << CONNECT_TIMEOUT_MS << "ms (" << attempt
+         << " attempts)" << endl;
     return false;
 
 connected:

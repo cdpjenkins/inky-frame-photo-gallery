@@ -67,6 +67,19 @@ Each step is done, then checked on the device, before the next.
 3. **Disconnect cleanly** (only if failures continue after step 2): leave the network (`cyw43_wifi_leave`) and stop
    the driver (`cyw43_arch_deinit`) before sleeping or restarting.
 
+## Step 2: what was done
+
+`connect_wifi` now retries a refused join. On `connection failed`, it logs
+`Join attempt <n> refused: connection failed (status -1) after <ms>ms`, leaves the network (`cyw43_wifi_leave`),
+waits 1 second, and starts a new join, logging `Join attempt <n+1>, <ms>ms after start-up`. The 30-second limit now
+covers all attempts together; if no join works within it, the log says
+`Could not connect to WiFi: no join worked within 30000ms (<n> attempts)`. `network not found` and
+`bad authentication` still give up at once. A successful join logs `Connected on attempt <n> after <ms>ms` (the time
+within that attempt).
+
+To check on the device (at the frame's usual spot, where most first joins were refused): over several starts, joins
+that are refused on attempt 1 connect on a later attempt.
+
 ## Done when
 
 - [ ] Step 1: the log shows the start reason, join timing, attempts and, after a join, the MAC address, BSSID and
